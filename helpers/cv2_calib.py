@@ -1,10 +1,12 @@
 # General CV2 Camera Calibration Function Implementation
+import sys
+sys.path.append("../")
 import numpy as np
 import cv2
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import glob
-from helpers.logger import setup_logger
+from logger import setup_logger
 
 
 class CamcalibCV2:
@@ -118,3 +120,73 @@ class CamcalibCV2:
 
         mean_error = round((mean_error / len(self.objpoints)), 6)
         return mean_error
+    
+
+def write_calib_txt(mtx, dst, path="calib.txt"):
+    """
+    Write the camera matrix and distortion coefficients to a text file.
+
+    Args:
+        mtx (numpy.ndarray): Camera matrix.
+        dst (numpy.ndarray): Distortion coefficients.
+        path (str): Path to save the text file. Default is "calib.txt".
+    """
+    with open(path, "w") as f:
+        f.write("Camera Matrix\n")
+        # dont write as string Write individual elements
+        for i in mtx:
+            for j in i:
+                f.write(str(j) + " ")
+        f.write("\n\nDistortion Coefficients\n")
+        for i in dst:
+            for j in i:
+                f.write(str(j) + " ")
+        f.close()
+    print(f"Camera Matrix and Distortion Coefficients saved to {path}")
+    
+def read_calib_txt(path="calib.txt"):
+    """
+    Read the camera matrix and distortion coefficients from a text file.
+
+    Args:
+        path (str): Path to the text file. Default is "calib.txt".
+
+    Returns:
+        tuple: Camera matrix and distortion coefficients.
+    """
+    with open(path, "r") as f:
+        lines = f.readlines()
+        # Read Camera Matrix
+        mtx = np.array([float(i) for i in lines[1].strip().split()])
+        dst = np.array([float(i) for i in lines[4].strip().split()])
+        # Reshape the arrays
+        mtx = mtx.reshape(3, 3)
+        dst = dst.reshape(1, 5)
+        f.close()
+    return mtx, dst
+    
+def main():
+    # Initialize the class
+    abs_path_data = "/home/udaygirish/Projects/WPI/computer_vision/project3/P3Data/"
+    calibration_folder = "Calib/"
+    camera_type = "front/"
+    image_path = abs_path_data + calibration_folder + camera_type + "frame*.jpg"
+    output_path = abs_path_data + calibration_folder + camera_type + "calibration.txt"
+    cam_calib = CamcalibCV2(ImagesPath=image_path)
+    # Perform Camera Calibration
+    mtx, dst = cam_calib.calib()
+    print("Original Camera Matrix: ", mtx)
+    print("Original Distortion Coefficients: ", dst)
+    # Calculate the projection error
+    proj_err = cam_calib.calculate_projection_err()
+    print(f"Projection Error: {proj_err}")
+    # Save the camera matrix and distortion coefficients
+    write_calib_txt(mtx, dst, path=output_path)
+    
+    read_mtx, read_dst = read_calib_txt(path=output_path)
+    print(f"Camera Matrix: {read_mtx}")
+    print(f"Distortion Coefficients: {read_dst}")
+
+if __name__ == "__main__":
+    main()
+    
