@@ -4,22 +4,6 @@ import json
 import numpy as np
 from mathutils import Matrix , Vector
 
-# Create a new camera if none exists
-if not bpy.data.objects.get('Camera'):
-    bpy.ops.object.camera_add()
-
-# Get the camera object
-camera = bpy.data.objects.get('Camera')  # Assuming the camera's name is 'Camera'
-
-with open('/home/abven/CV_Course/badari_p3/frames_2.json', 'r') as f:
-    json_data = json.load(f)
-
-with open('/home/abven/CV_Course/badari_p3/frames.json', 'r') as f:
-    xy_json_data = json.load(f)
-
-file_name = "/home/abven/CV_Course/badari_p3/P3Data/Assets/Vehicles/SUV.blend"
-depth_file = "/home/abven/CV_Course/badari_p3/frame_583.txt"
-depth = np.loadtxt(depth_file)
 
 
 
