@@ -4,10 +4,11 @@ import cv2
 def get_traffic_signs(boxes_total, classes_total, scores_total, classes_names):
     
     traffic_signs = []
+    print("Classes Total:", classes_total)
+    print("Classes Names: ", classes_names)
     for i in range(len(boxes_total)):
-        if classes_names[classes_total[i]] == "traffic sign":
+        if classes_names[i] == "traffic sign":
             traffic_signs.append(boxes_total[i])
-    
     return traffic_signs
 
 def traffic_sign_threshold(image, boxes_total, classes_total, scores_total, classes_names):
