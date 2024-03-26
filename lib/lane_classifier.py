@@ -7,7 +7,7 @@ import torch.nn as nn
 import glob
 import os
 import sys
-sys.path.append("../Lane_Detection/Lane_Classsification/")
+sys.path.append("../Lane_Detection/Lane_Classification/")
 from PIL import Image
 from infer_utils import draw_segmentation_map, get_outputs
 from torchvision.transforms import transforms as transforms
@@ -21,7 +21,7 @@ from class_names import INSTANCE_CATEGORY_NAMES as class_names
 # no-boxes - default store_true (--no_boxes)
 # threshold - default 0.5
 BASE_PATH = "/home/udaygirish/Projects/WPI/computer_vision/project3/"
-MODEL_PATH = "Lane_Detection/Lane_Classsification/outputs/training/road_line/model_15.pth"
+MODEL_PATH = "Lane_Detection/Lane_Classification/outputs/training/road_line/model_15.pth"
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def load_model(weights_path= BASE_PATH + MODEL_PATH):
@@ -49,15 +49,16 @@ def infer_image(model, image_path, threshold=0.5):
     # add a batch dimension
     image = image.unsqueeze(0).to(DEVICE)
     
-    masks, boxes, labels = get_outputs(image, model)    
+    masks, boxes, labels = get_outputs(image, model, threshold=threshold)    
+    result = draw_segmentation_map(orig_image, masks, boxes, labels)
     
-    #result = draw_segmentation_map(orig_image, masks, boxes, labels, args)
-    
+    #result = cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
+    #cv2.imwrite("output.png", result)
     return masks, boxes, labels
 
 def main():
     model = load_model()
-    image_path = BASE_PATH + "P3Data/test_video_frames/frame_0001.png"
+    image_path = BASE_PATH + "P3Data/test_video_frames/frame_0281.png"
     masks, boxes, labels = infer_image(model, image_path)
     print("Masks: ", masks)
     print("Boxes: ", boxes)

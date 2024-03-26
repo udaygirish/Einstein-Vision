@@ -12,7 +12,8 @@ from lib.clrernet_lane_detect import inference_lanes as il_inf
 from lib.zoe_depth import load_model as load_model_depth
 from lib.zoe_depth import run_inference as run_inference_depth
 from lib.zoe_depth import save_output as save_output_depth
-from lib.lane_classifier import * 
+from lib.lane_classifier import load_model as load_model_lane_classifier
+from lib.lane_classifier import infer_image as infer_image_lane_classifier
 # from lib.pose_2d import get_pose_2d as get_pose_2d
 from lib.yolov8_det import load_model as load_model_det
 from lib.yolov8_det import predict_image as predict_image_det
@@ -49,6 +50,11 @@ def single_image_pipeline(image_path):
     model_seg = load_model_seg()
     seg_res = predict_image_seg(model_seg, image_path)
     
+    # lane classification
+    lane_class = load_model_lane_classifier()
+    lane_masks, lane_boxes, lane_labels = infer_image_lane_classifier(lane_class, image_path)
+    
+    
     # TOtal results
     results = {
         'lanes': lanes,
@@ -60,7 +66,10 @@ def single_image_pipeline(image_path):
         },
         'pose_detection': pose_res,
         'depth': depth,
-        'segmentation': seg_res
+        'segmentation': seg_res,
+        'lane_masks': lane_masks,
+        'lane_boxes': lane_boxes,
+        'lane_labels': lane_labels
     }
     return results
     
