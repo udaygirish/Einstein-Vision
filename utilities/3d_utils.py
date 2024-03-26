@@ -4,34 +4,18 @@ import json
 import numpy as np
 from mathutils import Matrix , Vector
 
+def get_scale_factor(depth):
+    scale_factor = (max(depth.ravel()) - min(depth.ravel()))/max(depth.ravel())
+    return scale_factor
 
-
-
-scale_fac = (max(depth.ravel()) - min(depth.ravel()))/max(depth.ravel())
-
-
-def conv_im_world(R,K,pts) :
+def form1_conv_image_world(R,K,pts) :
     u,v = pts
     
     xyz = np.dot(np.array([u, v, 1]), np.linalg.inv(K).dot(np.linalg.inv(R)[:3,:4]))
-
-    # Convert to a C-Array (reshape if necessary)
-    xyz = np.array(xyz, dtype=np.float32)
     
     return xyz[:3]
 
-def convert_to_3d(R,K,pt) :
-    r_inv = np.linalg.inv(R[:3,:3])
-    k_inv = np.linalg.inv(K)
-    
-    xyz = np.dot(k_inv , r_inv)
-    xyz = np.dot(np.array([pt[0] , pt[1] , 1]) , xyz)
-    
-    return xyz
-
-
-def find_xyz(R, K, pts, depth):
-    
+def form2_conv_image_world(R,K,pts, depth) :
     # Get the pixel coordinates
     u ,v = pts
 
@@ -56,54 +40,45 @@ def find_xyz(R, K, pts, depth):
 
     return xyz
 
-for c, i in enumerate(json_data):
-         
-    K = np.array([[1622.30674706393,0.0,681.0156669556608],
-             [0.0,1632.8929856491513,437.0195537829288],
-             [0.0,0.0,1.0]])
 
-    R = np.array([[1, 0, 0, 0],
-        [0, 1, 0, 0],
-        [0, 0, 1, 1.5],
-        [0, 0, 0, 1]])
     
-#    bpy.ops.object.camera_add(enter_editmode=False, align='VIEW', location=(0, 0, z_val))
-#    camera = bpy.context.object
-#    camera.name = "Camera"
-    camera.location = (0, -1, 1.5)
-    camera.rotation_euler = (1.57, 0, 0)
-    bpy.context.scene.frame_set(c)
-    for obj_c,obj_det in enumerate(i['Objects']) :
-        with bpy.data.libraries.load(file_name) as (data_from, data_to):
-            data_to.objects = data_from.objects
-        bpy.context.scene.frame_set(obj_c)
-        for obj, obj_fro in zip(data_to.objects, data_from.objects):
-            bpy.context.collection.objects.link(obj)
-            obj = bpy.data.objects.get(obj_fro.name)
+# #    bpy.ops.object.camera_add(enter_editmode=False, align='VIEW', location=(0, 0, z_val))
+# #    camera = bpy.context.object
+# #    camera.name = "Camera"
+#     camera.location = (0, -1, 1.5)
+#     camera.rotation_euler = (1.57, 0, 0)
+#     bpy.context.scene.frame_set(c)
+#     for obj_c,obj_det in enumerate(i['Objects']) :
+#         with bpy.data.libraries.load(file_name) as (data_from, data_to):
+#             data_to.objects = data_from.objects
+#         bpy.context.scene.frame_set(obj_c)
+#         for obj, obj_fro in zip(data_to.objects, data_from.objects):
+#             bpy.context.collection.objects.link(obj)
+#             obj = bpy.data.objects.get(obj_fro.name)
             
-            if obj.name[:4] == 'Jeep' :
+#             if obj.name[:4] == 'Jeep' :
             
-                box_3d = obj_det['Box_3d']
-                cent = np.mean(box_3d,axis=0)
-                z_val = depth[int(cent[1]), int(cent[0])]
-                cent = find_xyz(R,K,cent,z_val)
-    #            cent = convert_to_3d(R,K,np.array(cent))
-                cent = [cent[0], cent[2], 0]
-                obj.location = cent
-    #            obj.location =  #(0,obj_det['Location'][1],obj_det['Location'][2])
-    #            obj.location = [cent[1],cent[2],-cent[0]]
-                di = obj_det['Dim'] # (di[0]*scale_fac , di[1] , di[2]) #
-#                sca = [obj_fro.scale[0] * scale_fac,obj_fro.scale[1] * scale_fac,obj_fro.scale[2]* scale_fac]
-#                obj.scale = sca
-                obj.scale = np.array([1,1,1]) * scale_fac #* obj_det['Dim']
-                orien , rot = obj_det['Orientation'] , obj_det['R']
-                bird_view_orien = Matrix(((1, 0, 0),
-                                            (0, 1, 0),
-                                            (orien[0], orien[1], 0)))
-                relative_view = bird_view_orien.transposed() @ Matrix(rot)
-                euler_angles = relative_view.to_euler()
-                obj.rotation_euler = euler_angles
-    break
+#                 box_3d = obj_det['Box_3d']
+#                 cent = np.mean(box_3d,axis=0)
+#                 z_val = depth[int(cent[1]), int(cent[0])]
+#                 cent = find_xyz(R,K,cent,z_val)
+#     #            cent = convert_to_3d(R,K,np.array(cent))
+#                 cent = [cent[0], cent[2], 0]
+#                 obj.location = cent
+#     #            obj.location =  #(0,obj_det['Location'][1],obj_det['Location'][2])
+#     #            obj.location = [cent[1],cent[2],-cent[0]]
+#                 di = obj_det['Dim'] # (di[0]*scale_fac , di[1] , di[2]) #
+# #                sca = [obj_fro.scale[0] * scale_fac,obj_fro.scale[1] * scale_fac,obj_fro.scale[2]* scale_fac]
+# #                obj.scale = sca
+#                 obj.scale = np.array([1,1,1]) * scale_fac #* obj_det['Dim']
+#                 orien , rot = obj_det['Orientation'] , obj_det['R']
+#                 bird_view_orien = Matrix(((1, 0, 0),
+#                                             (0, 1, 0),
+#                                             (orien[0], orien[1], 0)))
+#                 relative_view = bird_view_orien.transposed() @ Matrix(rot)
+#                 euler_angles = relative_view.to_euler()
+#                 obj.rotation_euler = euler_angles
+#     break
 
 #cam = bpy.data.objects.get("Camera_F")
 #bpy.context.scene.camera = camera

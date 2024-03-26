@@ -25,3 +25,15 @@ def transform_camera_world(pts, R, K):
     u, v = pts
     xyz = np.dot(np.array([u, v, 1]), np.linalg.inv(K).dot(np.linalg.inv(R)[:3, :4]))
     
+def get_hardcoded_KR():
+    K = np.array([[1622.30674706393, 0.0, 681.0156669556608],
+                  [0.0, 1632.8929856491513, 437.0195537829288],
+                  [0.0, 0.0, 1.0]])
+    
+    R = np.array([[1, 0, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 0, 1, 1.5],
+                    [0, 0, 0, 1]])
+    
+    return K, R
+    

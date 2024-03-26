@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 from tqdm import tqdm, trange
 import time 
+import pickle
 
 from lib.clrernet_lane_detect import inference_lanes as il_inf
 # from lib.depth_anything import load_pipe as load_depth_pipe
@@ -26,6 +27,13 @@ from lib.yolov8_seg import load_model as load_model_seg
 from lib.yolov8_seg import predict_image as predict_image_seg
 from lib.lane_class_matcher import lane_class_matcher
 from lib.traffic_sign_thresholder import traffic_sign_threshold
+# from lib.yolov3d_infer import detect3d # Have to work on the DLANet already registered error
+
+BASE_PATH = "/home/udaygirish/Projects/WPI/computer_vision/project3/"
+def load_yolo3d_json(json_path):
+    with open(json_path, 'r') as f:
+        data = json.load(f)
+    return data
 
 
 def single_image_pipeline(image_path):
@@ -59,6 +67,28 @@ def single_image_pipeline(image_path):
     
     traffic_sign_threshold(image, boxes_total, classes_total, scores_total, classes_names)
     
+    # Get YOlo3d 
+    # Defining some variables - Shift Later
+    BASE_PATH = "/home/udaygirish/Projects/WPI/computer_vision/project3/"
+    # D3_WEIGHTS_PATH = "Object_Detection/YOLO3D/weights/resnet18.pkl"
+    # MODEL_SELECT = "resnet" 
+    # CALIB_FILE_PATH = "../Object_Detection/YOLO3D/eval/camera_cal/calib_cam_to_cam.txt"
+    # print("IN YOLO 3d")
+    # out_Objects_3d = detect3d(BASE_PATH+D3_WEIGHTS_PATH,
+    #                           MODEL_SELECT,
+    #                           [image_path],
+    #                             CALIB_FILE_PATH,
+    #                             show_result=False,
+    #                             save_result=False,
+    #                             output_path=None)
+    # print("OUT YOLO 3d")
+    YOLO_3D_JSON_PATH = "P3Data/frames_test_yolo3d.json"
+    
+    out_Objects_3d = load_yolo3d_json(BASE_PATH+YOLO_3D_JSON_PATH)
+    frame_name = image_path.split("/")[-1].split(".")[0]
+    frame_no  = int(frame_name.split("_")[-1])
+    out_Objects_3d = out_Objects_3d[frame_no-1]
+    
     print("Type of all the outputs")
     print(type(lanes))
     print(type(obj_res))
@@ -83,7 +113,8 @@ def single_image_pipeline(image_path):
         'segmentation': seg_res,
         'lane_masks': lane_masks,
         'lane_boxes': lane_boxes,
-        'lane_labels': lane_labels
+        'lane_labels': lane_labels,
+        'yolo3d': out_Objects_3d
     }
     final_lanes = lane_class_matcher(results)
     
@@ -99,10 +130,15 @@ def main():
     result_dict = {}
     for image_path in total_images:
         temp_results = single_image_pipeline(image_path)
+        print("Processing Image: ", image_path)
+        print(temp_results['yolo3d'])
         result_dict['image_path'] = temp_results
     
-    # with open('results.json', 'w') as f:
-    #     json.dump(result_dict, f)
+    
+    # Dump the results to pickle
+    with open(BASE_PATH+ "P3Data/results.pkl", 'wb') as f:
+        pickle.dump(result_dict, f)
+    
     
 
 if __name__ == '__main__':
