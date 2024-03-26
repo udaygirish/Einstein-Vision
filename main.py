@@ -25,6 +25,7 @@ from lib.yolov8_pose import predict_image as predict_image_pose
 from lib.yolov8_seg import load_model as load_model_seg
 from lib.yolov8_seg import predict_image as predict_image_seg
 from lib.lane_class_matcher import lane_class_matcher
+from lib.traffic_sign_thresholder import traffic_sign_threshold
 
 
 def single_image_pipeline(image_path):
@@ -55,6 +56,8 @@ def single_image_pipeline(image_path):
     # lane classification
     lane_class = load_model_lane_classifier()
     lane_masks, lane_boxes, lane_labels = infer_image_lane_classifier(lane_class, image_path)
+    
+    traffic_sign_threshold(image, boxes_total, classes_total, scores_total, classes_names)
     
     print("Type of all the outputs")
     print(type(lanes))
