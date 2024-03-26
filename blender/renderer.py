@@ -1,6 +1,8 @@
 import bpy
 import random 
 
+# Old blender file in updation 
+
 class BlenderObj:
     def __init__(self):
         pass 
