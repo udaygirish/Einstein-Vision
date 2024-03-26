@@ -2,7 +2,8 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 from argparse import ArgumentParser
 import sys 
-sys.path.append("../../Lane_Detection/CLRerNet/libs")
+sys.path.append("../Lane_Detection/CLRerNet/")
+sys.path.append("../Lane_Detection/CLRerNet/libs")
 
 from mmdet.apis import init_detector
 
@@ -12,7 +13,7 @@ from libs.utils.visualizer import visualize_lanes
 
 def inference_lanes(img_path):
     base_path = "/home/udaygirish/Projects/WPI/computer_vision/project3/Lane_Detection/CLRerNet"
-    config_path = f"{base_path}/configs/clrernet/clrernet_culane_dla34.py"
+    config_path = f"{base_path}/configs/clrernet/culane/clrernet_culane_dla34.py"
     checkpoint_path = f"{base_path}/pretrained/clrernet_culane_dla34.pth"
     model = init_detector(config_path, checkpoint_path, device='cuda:0')
     src, preds = inference_one_image(model, img_path)

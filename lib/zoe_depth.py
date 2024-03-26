@@ -2,7 +2,8 @@ import torch
 
 torch.hub.help("intel-isl/MiDaS", "DPT_BEiT_L_384", force_reload=True) 
 import sys
-sys.path.append("../../Mono_Depth_Estimation/ZoeDepth/zoedepth")
+sys.path.append("../Mono_Depth_Estimation/ZoeDepth/")
+sys.path.append("../Mono_Depth_Estimation/ZoeDepth/zoedepth")
 from PIL import Image
 from zoedepth.utils.misc import save_raw_16bit, colorize
 

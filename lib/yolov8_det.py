@@ -15,13 +15,13 @@ def predict_image(model, img_path):
     for i in range(len(classes_total)):
         classes_names.append(total_labels[classes_total[i]])
         
-    print("====================================")
-    print("Predictions")
-    print("Boxes: ", boxes_total)
-    print("Classes: ", classes_total)
-    print("Scores: ", scores_total)
-    print("Classes Names: ", classes_names)
-    print("====================================")
+    # print("====================================")
+    # print("Predictions")
+    # print("Boxes: ", boxes_total)
+    # print("Classes: ", classes_total)
+    # print("Scores: ", scores_total)
+    # print("Classes Names: ", classes_names)
+    # print("====================================")
     return results, boxes_total, classes_total, scores_total, classes_names
         
     
