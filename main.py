@@ -126,13 +126,15 @@ def main():
     # Get objects and save as JSON
     total_images = glob.glob("../P3Data/test_video_frames/*.png")
     print("Total Images: ", len(total_images))
-    total_images = total_images[:1]
+    #total_images = total_images[:1]
+    total_images = sorted(total_images)
+    total_images = total_images[200:201]
     result_dict = {}
     for image_path in total_images:
         temp_results = single_image_pipeline(image_path)
         print("Processing Image: ", image_path)
         print(temp_results['yolo3d'])
-        result_dict['image_path'] = temp_results
+        result_dict[image_path] = temp_results
     
     
     # Dump the results to pickle
