@@ -6,6 +6,11 @@ RBE 595 Project- Einstein Vision Implementation
 
 source ~/Projects/WPI/computer_vision/project3/blender-4.0.2-linux-x64/blender_env/bin/activate
 
+
+### Notion page link for Full research - [Link](https://udaygirish.notion.site/Project-3-Visualization-f941159cac53424481ffd8e4834c9e98?pvs=74)
+
+
+
 ### ToDO :
 (p-partial, x - completed, " " - not completed) \
 implement/integration - reusable 
