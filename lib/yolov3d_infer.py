@@ -1,5 +1,7 @@
 import sys 
-sys.path.append("../../Object_Detection/YOLO3D")
+# Only absolute path import working 
+BASE_PATH = "/home/udaygirish/Projects/WPI/computer_vision/project3/Object_Detection/YOLO3D/"
+sys.path.append("/home/udaygirish/Projects/WPI/computer_vision/project3/Object_Detection/YOLO3D")
 # YOLOv5 🚀 by Ultralytics, GPL-3.0 license
 """
 Run inference on images, videos, directories, streams, etc.
@@ -19,6 +21,8 @@ ROOT = FILE.parents[0]  # YOLOv5 root directory
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
+
+# How to make this models import from Yolo3D repo
 
 from models.common import DetectMultiBackend
 from utils.datasets import LoadImages
@@ -90,7 +94,7 @@ def detect3d(
         dets = detect2d(
             weights='yolov5s.pt',
             source=img_path,
-            data='data/coco128.yaml',
+            data=BASE_PATH+'data/coco128.yaml',
             imgsz=[640, 640],
             device=0,
             classes=[0, 2, 3, 5]

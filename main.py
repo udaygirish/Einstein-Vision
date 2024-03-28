@@ -9,7 +9,12 @@ import numpy as np
 from tqdm import tqdm, trange
 import time 
 import pickle
+import sys 
 
+from lib.yolov3d_infer import detect3d # Have to work on the DLANet already registered error
+# Solved the above issue as loading yolo3d first works better
+# it is following absolute paths 
+# also np.float alias issue
 from lib.clrernet_lane_detect import inference_lanes as il_inf
 # from lib.depth_anything import load_pipe as load_depth_pipe
 # from lib.depth_anything import predict as predict_depth
@@ -27,7 +32,7 @@ from lib.yolov8_seg import load_model as load_model_seg
 from lib.yolov8_seg import predict_image as predict_image_seg
 from lib.lane_class_matcher import lane_class_matcher
 from lib.traffic_sign_thresholder import traffic_sign_threshold
-# from lib.yolov3d_infer import detect3d # Have to work on the DLANet already registered error
+
 
 BASE_PATH = "/home/udaygirish/Projects/WPI/computer_vision/project3/"
 def load_yolo3d_json(json_path):
@@ -70,26 +75,28 @@ def single_image_pipeline(image_path):
     # Get YOlo3d 
     # Defining some variables - Shift Later
     BASE_PATH = "/home/udaygirish/Projects/WPI/computer_vision/project3/"
-    # D3_WEIGHTS_PATH = "Object_Detection/YOLO3D/weights/resnet18.pkl"
-    # MODEL_SELECT = "resnet" 
-    # CALIB_FILE_PATH = "../Object_Detection/YOLO3D/eval/camera_cal/calib_cam_to_cam.txt"
-    # print("IN YOLO 3d")
-    # out_Objects_3d = detect3d(BASE_PATH+D3_WEIGHTS_PATH,
-    #                           MODEL_SELECT,
-    #                           [image_path],
-    #                             CALIB_FILE_PATH,
-    #                             show_result=False,
-    #                             save_result=False,
-    #                             output_path=None)
-    # print("OUT YOLO 3d")
-    YOLO_3D_JSON_PATH = "P3Data/frames_test_yolo3d.json"
+    D3_WEIGHTS_PATH = "Object_Detection/YOLO3D/weights/resnet.pkl"
+    MODEL_SELECT = "resnet" 
+    CALIB_FILE_PATH = "../Object_Detection/YOLO3D/eval/camera_cal/calib_cam_to_cam.txt"
+    print("IN YOLO 3d")
+    out_Objects_3d = detect3d(BASE_PATH+D3_WEIGHTS_PATH,
+                              MODEL_SELECT,
+                              [image_path],
+                                CALIB_FILE_PATH,
+                                show_result=False,
+                                save_result=False,
+                                output_path=None)
     
-    out_Objects_3d = load_yolo3d_json(BASE_PATH+YOLO_3D_JSON_PATH)
-    frame_name = image_path.split("/")[-1].split(".")[0]
-    frame_no  = int(frame_name.split("_")[-1])
-    out_Objects_3d = out_Objects_3d[frame_no-1]
+    # Temp method to use the 3d json file directly 
+    # YOLO_3D_JSON_PATH = "P3Data/frames_test_yolo3d.json"
     
-    print("Type of all the outputs")
+    # out_Objects_3d = load_yolo3d_json(BASE_PATH+YOLO_3D_JSON_PATH)
+    # frame_name = image_path.split("/")[-1].split(".")[0]
+    # frame_no  = int(frame_name.split("_")[-1])
+    # out_Objects_3d = out_Objects_3d[frame_no-1]
+    
+    # print("Type of all the outputs")
+    
     print(type(lanes))
     print(type(obj_res))
     print(type(pose_res))
