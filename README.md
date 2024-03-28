@@ -41,3 +41,6 @@ implement/integration - reusable
 ### Architecture 
 
 ![Temp Architecture](images/Temp_Architecture.png)
+
+
+![4 Cam Pipeline](images/4_Cam_Pipeline.png)
