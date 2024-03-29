@@ -1,5 +1,6 @@
 yolov8n-pose.pt 
 yolov8n-seg.pt
 yolov8x.pt
-__pychache__/*
 yolov5s.pt
+yolov8x-pose.pt
+__pycache__/*

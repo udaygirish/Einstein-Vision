@@ -97,7 +97,7 @@ def detect3d(
             data=BASE_PATH+'data/coco128.yaml',
             imgsz=[640, 640],
             device=0,
-            classes=[0, 2, 3, 5]
+            classes=[0, 1, 2, 3, 5, 6, 7, 9, 10, 11,12, 13, 14,15]
         )
 
         for det in dets:
@@ -204,7 +204,7 @@ def detect2d(
 
         # Second-stage classifier (optional)
         # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
-
+        labels_total_list = []
         # Process predictions
         for i, det in enumerate(pred):  # per image
             seen += 1
@@ -230,10 +230,16 @@ def detect2d(
                     bbox = [top_left, bottom_right]
                     c = int(cls)  # integer class
                     label = names[c]
-
+                    labels_total_list.append(label)
+                    
                     bbox_list.append(Bbox(bbox, label))
 
             # Print time (inference-only)
+            #LOGGER.info(bbox_list)
+            print("=====================================")
+            print("Labels Total List")
+            print(labels_total_list)
+            print("=====================================")
             LOGGER.info(f'{s}Done. ({t3 - t2:.3f}s)')
 
     # Print results
