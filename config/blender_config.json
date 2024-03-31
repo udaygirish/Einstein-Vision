@@ -1,0 +1,19 @@
+{
+	"car": {
+		"car_1": "Car",
+		"car_2": "jeep_3_"
+	},
+	"truck": {
+		"truck_1": "PickupTruck",
+		"truck_2": "Truck"
+	},
+	"motorcycle": "B_Wheel",
+	"bicycle": "roadbike 2.0.1",
+	"dustbin": "Bin_Mesh.072",
+	"stop sign": "StopSign_Geo",
+	"parking meter": "sign_25mph_sign_25mph",
+	"traffic light": "TrafficSignal",
+	"person": "BaseMesh_Man_Simple",
+	"fire": "fire hydrant",
+	"traffic cone": "absperrhut"
+}

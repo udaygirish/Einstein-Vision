@@ -17,11 +17,7 @@ bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete()
 
 from utilities.three_d_utils import form2_conv_image_world, get_scale_factor
-
-def open_pickle_file(file_path):
-    with open(file_path, 'rb') as f:
-        data = pickle.load(f)
-    return data
+from utilities.blender_utils import open_pickle_file
 
 BASE_PATH = "/home/udaygirish/Projects/WPI/computer_vision/project3/"
 DATA_PATH = BASE_PATH + "P3Data/"
@@ -34,25 +30,25 @@ ASSETS_PATH = DATA_PATH + "Assets/"
 # SpeedLimitSign - sign_25mph_sign_25mph
 
 YOLO_CLASSES_TO_BLENDER = {
-    'car':{
-        'car_1': 'Car',
-        'car_2': 'jeep_3_',
-    },
-    'truck': {
-        'truck_1': 'PickupTruck',
-        'truck_2': 'Truck',
-        },
-    'motorcycle': 'B_Wheel',
-    'bicycle': 'roadbike 2.0.1',
-    'dustbin': 'Bin_Mesh.072',
-    'stop sign': 'StopSign_Geo',
-    'parking meter': 'sign_25mph_sign_25mph',
-    'traffic light': 'TrafficSignal',
-    'person': 'BaseMesh_Man_Simple',
-    'fire': 'fire hydrant',
-    'traffic cone': 'absperrhut'
-    
+	"car": {
+		"car_1": "Car",
+		"car_2": "jeep_3_"
+	},
+	"truck": {
+		"truck_1": "PickupTruck",
+		"truck_2": "Truck"
+	},
+	"motorcycle": "B_Wheel",
+	"bicycle": "roadbike 2.0.1",
+	"dustbin": "Bin_Mesh.072",
+	"stop sign": "StopSign_Geo",
+	"parking meter": "sign_25mph_sign_25mph",
+	"traffic light": "TrafficSignal",
+	"person": "BaseMesh_Man_Simple",
+	"fire": "fire hydrant",
+	"traffic cone": "absperrhut"
 }
+
     
     
 class Blender_Utils:

@@ -10,6 +10,7 @@ from tqdm import tqdm, trange
 import time 
 import pickle
 import sys 
+from tqdm import tqdm 
 
 from lib.yolov3d_infer import detect3d # Have to work on the DLANet already registered error
 # Solved the above issue as loading yolo3d first works better
@@ -133,18 +134,18 @@ def main():
     # Get objects and save as JSON
     total_images = glob.glob("../P3Data/new_test/*.jpg")
     print("Total Images: ", len(total_images))
-    total_images = total_images[:1]
+    total_images = total_images
     total_images = sorted(total_images)
     #total_images = total_images[200:201]
     result_dict = {}
-    for image_path in total_images:
+    for image_path in tqdm(total_images):
         temp_results = single_image_pipeline(image_path)
-        print("Processing Image: ", image_path)
-        print("=====================================")
-        print("POSE DETECTION OUTPUT")
-        print(temp_results['pose_detection'])
-        print("=====================================")
-        print(temp_results['yolo3d'])
+        # print("Processing Image: ", image_path)
+        # print("=====================================")
+        # print("POSE DETECTION OUTPUT")
+        # print(temp_results['pose_detection'])
+        # print("=====================================")
+        # print(temp_results['yolo3d'])
         result_dict[image_path] = temp_results
     
     

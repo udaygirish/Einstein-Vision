@@ -3,6 +3,8 @@ import math
 import json
 import numpy as np
 from mathutils import Matrix , Vector
+from scipy.spatial import ConvexHull
+from scipy.interpolate import splprep, splev
 
 def get_scale_factor(depth):
     scale_factor = (max(depth.ravel()) - min(depth.ravel()))/max(depth.ravel())
@@ -40,45 +42,54 @@ def form2_conv_image_world(R,K,pts, depth) :
 
     return xyz
 
+# Function to fit a Bezier curve to the points
+def fit_bezier_curve(points, smooth=0.2):
+    # Fit a Bézier curve to the points
+    points = np.array(points)
+    tck, _ = splprep(points.T, s=smooth)
+    # Evaluate the Bézier curve at a higher resolution
+    u_new = np.linspace(0, 1, num=100)
+    curve_points = splev(u_new, tck)
+    return curve_points
 
+def sub_sample_points(points, n=5):
+    sub_sampled_points = []
+    # Sub sample the points
+    n = min(n, len(points)//2)
+    for i in range(0, len(points), n):
+        sub_sampled_points.append(points[i])
+    return sub_sampled_points
+
+def get_3d_lane_pts(R, K, lane_points, depth, lane_bbox):
+    lane_points = np.array(lane_points)
+    lane_bbox = np.array(lane_bbox)
+    lane_3d_pts = []
+    lane_3d_bbox = []
+    # Take first 75 percent only 
+    for i in range(lane_points.shape[0]):
+        point = lane_points[i]
+        x = point[0]
+        y = point[1]
+        z = depth[int(y), int(x)]
+        (x, y, z) = form2_conv_image_world(R, K, (x, y), z)
+        lane_3d_pts.append((x, y, z))
+        
+    for i in range(len(lane_bbox)):
+        point = lane_bbox[i]
+        x = point[0]
+        y = point[1]
+        z = depth[int(y), int(x)]
+        (x, y, z) = form2_conv_image_world(R, K, (x, y), z)
+        lane_3d_bbox.append((x, y, z))
     
-# #    bpy.ops.object.camera_add(enter_editmode=False, align='VIEW', location=(0, 0, z_val))
-# #    camera = bpy.context.object
-# #    camera.name = "Camera"
-#     camera.location = (0, -1, 1.5)
-#     camera.rotation_euler = (1.57, 0, 0)
-#     bpy.context.scene.frame_set(c)
-#     for obj_c,obj_det in enumerate(i['Objects']) :
-#         with bpy.data.libraries.load(file_name) as (data_from, data_to):
-#             data_to.objects = data_from.objects
-#         bpy.context.scene.frame_set(obj_c)
-#         for obj, obj_fro in zip(data_to.objects, data_from.objects):
-#             bpy.context.collection.objects.link(obj)
-#             obj = bpy.data.objects.get(obj_fro.name)
-            
-#             if obj.name[:4] == 'Jeep' :
-            
-#                 box_3d = obj_det['Box_3d']
-#                 cent = np.mean(box_3d,axis=0)
-#                 z_val = depth[int(cent[1]), int(cent[0])]
-#                 cent = find_xyz(R,K,cent,z_val)
-#     #            cent = convert_to_3d(R,K,np.array(cent))
-#                 cent = [cent[0], cent[2], 0]
-#                 obj.location = cent
-#     #            obj.location =  #(0,obj_det['Location'][1],obj_det['Location'][2])
-#     #            obj.location = [cent[1],cent[2],-cent[0]]
-#                 di = obj_det['Dim'] # (di[0]*scale_fac , di[1] , di[2]) #
-# #                sca = [obj_fro.scale[0] * scale_fac,obj_fro.scale[1] * scale_fac,obj_fro.scale[2]* scale_fac]
-# #                obj.scale = sca
-#                 obj.scale = np.array([1,1,1]) * scale_fac #* obj_det['Dim']
-#                 orien , rot = obj_det['Orientation'] , obj_det['R']
-#                 bird_view_orien = Matrix(((1, 0, 0),
-#                                             (0, 1, 0),
-#                                             (orien[0], orien[1], 0)))
-#                 relative_view = bird_view_orien.transposed() @ Matrix(rot)
-#                 euler_angles = relative_view.to_euler()
-#                 obj.rotation_euler = euler_angles
-#     break
+    return lane_3d_pts, lane_3d_bbox
 
-#cam = bpy.data.objects.get("Camera_F")
-#bpy.context.scene.camera = camera
+# Function to filter the bezier curve points
+def bezier_curve_filter(bezier_curve_points):
+    filtered_bezier_curve_points = [[], [], []]
+    for i in range(1, len(bezier_curve_points[0])):
+        print("Difference: ", bezier_curve_points[2][i] - bezier_curve_points[2][i - 1])
+        if bezier_curve_points[2][i] - bezier_curve_points[2][i - 1] < -0.05:
+            for j in range(3):
+                filtered_bezier_curve_points[j].append(bezier_curve_points[j][i])
+    return filtered_bezier_curve_points

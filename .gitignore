@@ -4,3 +4,4 @@ yolov8x.pt
 yolov5s.pt
 yolov8x-pose.pt
 __pycache__/*
+*.pt

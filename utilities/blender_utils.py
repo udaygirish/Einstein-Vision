@@ -2,6 +2,7 @@ import bpy
 import math 
 import json 
 import numpy as np 
+import pickle
 from mathutils import Matrix, Vector 
 
 def delete_all_objects():
@@ -36,4 +37,9 @@ def get_hardcoded_KR():
                     [0, 0, 0, 1]])
     
     return K, R
+
+def open_pickle_file(file_path):
+    with open(file_path, 'rb') as f:
+        data = pickle.load(f)
+    return data
     
