@@ -216,6 +216,11 @@ def main():
     
     contours = find_contours(edges)
     print("Length of Contours", len(contours))
+    
+    # Take the contours only till a certain part of the image
+    # Example Bottom part of the image
+    area_bbox = (0, img.shape[1], img.shape[0]//2, img.shape[0])
+    contours = filter_contours_by_area(contours,img, bbox = None)
     img = cv2.imread(img_path)
     contour_edges_list, hull_edges_list, hull_list, contour_list = multiple_contours_processing(contours, threshold=2)
     
@@ -229,6 +234,8 @@ def main():
     
     save_image(contour_img, output_path+ "/" + "contours.jpg")
     
+    directions = find_arrow_direction(hull_list)
+    print("Directions", directions)
     # img1 = cv2.imread(img_path)
     # contours, hierarchy = cv2.findContours(preprocess(img1), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
