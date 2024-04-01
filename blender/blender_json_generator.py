@@ -15,7 +15,10 @@ import sys
 
 
 
-
+# Delete all blender objects
+bpy.ops.object.select_all(action='DESELECT')
+bpy.ops.object.select_by_type(type='MESH')
+bpy.ops.object.delete()
 
 BASE_PATH = "/home/udaygirish/Projects/WPI/computer_vision/project3/"
 DATA_PATH = BASE_PATH + "P3Data/"
@@ -30,6 +33,10 @@ sys.path.append(BASE_PATH+"blender-4.0.2-linux-x64/blender_env/lib/python3.10/si
 from utilities.three_d_utils import *
 from utilities.blender_utils import open_pickle_file
 import cv2 
+from blender.new_renderer import Blender_Utils 
+
+blender_utils = Blender_Utils()
+
 K = np.array([[1622.30674706393,0.0,681.0156669556608],
         [0.0,1632.8929856491513,437.0195537829288],
         [0.0,0.0,1.0]])
@@ -81,45 +88,80 @@ for i in range(len(final_lanes)):
 # Save the image
 cv2.imwrite("lane_points.png", img)
 
-lane_subsampled_points = sub_sample_points(final_lanes[1][0], 5)
+print("Length of Lane Points: ", len(final_lanes))
 
-# PLot the sub sampled points
-for i in range(len(lane_subsampled_points)):
-    point = lane_subsampled_points[i]
-    cv2.circle(img1, (int(point[0]), int(point[1])), 1, (255, 0, 0), -1)
-
-
-print("Lane Subsampled Points: ", len(lane_subsampled_points))
-cv2.imwrite("lane_subsampled_points.png", img1)
-print("Lane Subsampled Points After: ", len(lane_subsampled_points))
-
-lane_3d_pts, lane_3d_bbox = get_3d_lane_pts(R, K, lane_subsampled_points, depth, final_lanes[1][1])
-
-# print("Lane 3D Points: ", lane_3d_pts)
-
-# filtered_lane_3d_pts = remove_outliers(np.array(lane_3d_pts))
-filtered_lane_3d_pts = np.array(lane_3d_pts)
-
-
-# Clear the scene
-bpy.ops.object.select_all(action='DESELECT')
-bpy.ops.object.select_by_type(type='MESH')
-bpy.ops.object.delete()
-
-
-# Fit a Bézier curve to the filtered points
-bezier_curve_points = fit_bezier_curve(filtered_lane_3d_pts)
-
-bezier_curve_points = bezier_curve_filter(bezier_curve_points)
-# Create curve object in Blender
-curve_data = bpy.data.curves.new(name="BezierCurve", type='CURVE')
-curve_data.dimensions = '3D'
-polyline = curve_data.splines.new('POLY')
-polyline.points.add(len(bezier_curve_points[0]))
-for i, (x, y, z) in enumerate(zip(bezier_curve_points[0], bezier_curve_points[1], bezier_curve_points[2])):
-    polyline.points[i].co = (x, y, z, 1)
-
-# Create a new object with the curve
-curve_object = bpy.data.objects.new(name="BezierCurveObject", object_data=curve_data)
-bpy.context.collection.objects.link(curve_object)
+print("Length of Lane Points BBX: ", len(final_lanes[1][0]))
+blender_utils.create_road_surface()
+scale_factor = get_scale_factor(depth)
+for i in final_lanes:
+    single_lane = i 
+    lane_points = single_lane[0]
+    lane_bbox = single_lane[1]
+    lane_class = single_lane[2]
     
+    lane_subsampled_points = sub_sample_points(lane_points, 4)
+    
+    
+    lane_3d_pts, lane_3d_bbox = get_3d_lane_pts(R, K, lane_subsampled_points, depth, lane_bbox, scale_factor)
+    print("===================================="*3)
+    print(lane_subsampled_points)
+    print("===================================="*3)
+    print(lane_3d_pts)
+    print("===================================="*3)
+    filtered_lane_3d_pts = np.array(lane_3d_pts)
+    
+    bezier_curve_points = fit_bezier_curve(filtered_lane_3d_pts, smooth=0.5)
+    print("Bezier Curve Points: ", bezier_curve_points)
+    bezier_curve_points = bezier_curve_filter(bezier_curve_points)
+    
+    # Create curve object in Blender
+    curve_obj = blender_utils.create_bezier_curve(bezier_curve_points)
+    if lane_class == "solid-line":
+        blender_utils.create_lane_markings(curve_obj, lane_width=1, lane_length=10, gap_length=0, num_lanes=15)
+    else:
+        blender_utils.create_lane_markings(curve_obj, lane_width=1, lane_length=10, gap_length=1, num_lanes=8)
+        
+    print("Lane Generated")
+    
+
+# lane_subsampled_points = sub_sample_points(final_lanes[1][0], 5)
+
+# # PLot the sub sampled points
+# for i in range(len(lane_subsampled_points)):
+#     point = lane_subsampled_points[i]
+#     cv2.circle(img1, (int(point[0]), int(point[1])), 1, (255, 0, 0), -1)
+
+
+# print("Lane Subsampled Points: ", len(lane_subsampled_points))
+# cv2.imwrite("lane_subsampled_points.png", img1)
+# print("Lane Subsampled Points After: ", len(lane_subsampled_points))
+
+# lane_3d_pts, lane_3d_bbox = get_3d_lane_pts(R, K, lane_subsampled_points, depth, final_lanes[1][1])
+
+# # print("Lane 3D Points: ", lane_3d_pts)
+
+# # filtered_lane_3d_pts = remove_outliers(np.array(lane_3d_pts))
+# filtered_lane_3d_pts = np.array(lane_3d_pts)
+
+
+
+
+# # Fit a Bézier curve to the filtered points
+# bezier_curve_points = fit_bezier_curve(filtered_lane_3d_pts)
+
+# bezier_curve_points = bezier_curve_filter(bezier_curve_points)
+# # Create curve object in Blender
+# curve_data = bpy.data.curves.new(name="BezierCurve", type='CURVE')
+# curve_data.dimensions = '3D'
+# polyline = curve_data.splines.new('POLY')
+# polyline.points.add(len(bezier_curve_points[0]))
+# for i, (x, y, z) in enumerate(zip(bezier_curve_points[0], bezier_curve_points[1], bezier_curve_points[2])):
+#     polyline.points[i].co = (x, z, 0, 1)  # Align in the Blender aixs and set 0 so that z becomes zero relatively all the lanes stay on
+#     # the ground 
+
+# # Create a new object with the curve
+# curve_object = bpy.data.objects.new(name="BezierCurveObject", object_data=curve_data)
+# bpy.context.collection.objects.link(curve_object)
+
+
+

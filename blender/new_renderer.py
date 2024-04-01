@@ -23,6 +23,9 @@ BASE_PATH = "/home/udaygirish/Projects/WPI/computer_vision/project3/"
 DATA_PATH = BASE_PATH + "P3Data/"
 ASSETS_PATH = DATA_PATH + "Assets/"
 
+from utilities.three_d_utils import * 
+from utilities.blender_utils import open_pickle_file
+import cv2 
 # assets objects to YOLO class matches
 
 # Extra Traffic assets class - TrafficAssets
@@ -117,6 +120,51 @@ class Blender_Utils:
             entities_objects.append(entity_data.objects)
             
         return vehicles_objects, entities_objects
+    
+    def create_bezier_curve(self, points, name="Bezier_Curve"):
+        curve_data = bpy.data.curves.new(name="Bezier_Curve", type='CURVE')
+        curve_data.dimensions = '3D'
+        polyline = curve_data.splines.new('POLY')
+        polyline.points.add(len(points[0]))
+        for i, (x, y, z) in enumerate(zip(points[0], points[1], points[2])):
+            polyline.points[i].co = (x, z,0, 1) # Aligning Y along z and setting z=0 to ensure the points are snapped to Ground
+            # This errors are because of issues in finding the depth (Many inaccuracies) 
+            # to reduce we do a direct snapping 
+        
+        curve_object = bpy.data.objects.new(name="Bezier_Curve_Object", object_data=curve_data)
+        bpy.context.collection.objects.link(curve_object)
+        return curve_object
+        
+    
+    def create_road_surface(self):
+        bpy.ops.mesh.primitive_plane_add(size=100, enter_editmode=False, align='WORLD', location=(0, 0, 0))
+        road_surface = bpy.context.object
+        road_surface.name = "Road_Surface"
+        
+        # Assign material to road surface
+        road_material = bpy.data.materials.new(name="Road_Material")
+        road_material.diffuse_color = (0, 0, 0, 1)  # Black color
+        road_surface.data.materials.append(road_material)
+        
+    def create_lane_markings(self, curve_object, lane_width=4, lane_length=10, gap_length=1, num_lanes=10):
+        bpy.ops.mesh.primitive_cube_add(enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+        bpy.context.object.scale[1] = 0.1 * lane_width
+        bpy.context.object.scale[0] = 0.1* lane_length
+        bpy.context.object.scale[2] = 0.05
+        
+        # Add modifier 
+        bpy.ops.object.modifier_add(type='ARRAY')
+        bpy.context.object.modifiers["Array"].count = num_lanes
+        
+        # Position lane markings along the curve object
+        bpy.context.object.modifiers["Array"].use_constant_offset = True
+        bpy.context.object.modifiers["Array"].constant_offset_displace[0] = gap_length
+        bpy.ops.object.modifier_add(type='CURVE')
+        bpy.context.object.modifiers["Curve"].object = curve_object
+        
+        # Currently deforming along Position X as it is the current fit 
+        bpy.context.object.modifiers["Curve"].deform_axis = 'POS_X'
+        
         
     # Unrealted function below - Yet to modify
     def create_road_lanes(self):
@@ -217,74 +265,74 @@ class Blender_Utils:
         
         
 
-blender_utils = Blender_Utils()
+# blender_utils = Blender_Utils()
 
-# Clear Scene 
-blender_utils.delete_all_objects()
+# # Clear Scene 
+# blender_utils.delete_all_objects()
 
-blender_utils.setup_camera_first_person_view()
+# blender_utils.setup_camera_first_person_view()
 
-blender_utils.create_road_lanes()
-#vehicles = blender_utils.SpawnObject(ASSETS_PATH+"Vehicles/SedanAndHatchback.blend", ["Sedan"], (-2,3,0), (1,1,1))
+# blender_utils.create_road_lanes()
+# #vehicles = blender_utils.SpawnObject(ASSETS_PATH+"Vehicles/SedanAndHatchback.blend", ["Sedan"], (-2,3,0), (1,1,1))
 
-load_pickle_data = open_pickle_file(DATA_PATH+"results.pkl")
-print("=========================================")
+# load_pickle_data = open_pickle_file(DATA_PATH+"results.pkl")
+# print("=========================================")
 
-print("Keys in the pickle file: ", load_pickle_data.keys())
-output_data = load_pickle_data['../P3Data/test_video_frames/frame_0201.png']
-final_lanes = output_data['final_lanes']
-yolo3d = output_data['yolo3d']
-depth = output_data['depth']
-object_detections = output_data['object_detection']
-pose_detections = output_data['pose_detection']
+# print("Keys in the pickle file: ", load_pickle_data.keys())
+# output_data = load_pickle_data['../P3Data/test_video_frames/frame_0201.png']
+# final_lanes = output_data['final_lanes']
+# yolo3d = output_data['yolo3d']
+# depth = output_data['depth']
+# object_detections = output_data['object_detection']
+# pose_detections = output_data['pose_detection']
 
-print("=========================================")
-print("Length of final lanes: ", len(final_lanes))
-print("Length of yolo3d: ", len(yolo3d))
-print("Length of depth: ", len(depth))
-print("Length of object detection: ", len(object_detections))
-print("Length of pose detection: ", len(pose_detections))
+# print("=========================================")
+# print("Length of final lanes: ", len(final_lanes))
+# print("Length of yolo3d: ", len(yolo3d))
+# print("Length of depth: ", len(depth))
+# print("Length of object detection: ", len(object_detections))
+# print("Length of pose detection: ", len(pose_detections))
 
 
-# Get the scale factor
-scale_fac = get_scale_factor(depth)
+# # Get the scale factor
+# scale_fac = get_scale_factor(depth)
 
-bbox_3d = yolo3d['Objects']
+# bbox_3d = yolo3d['Objects']
 
-for i in range(0,len(bbox_3d)):
-    box_3d = bbox_3d[i]['Box_3d']
-    centroid = np.mean(box_3d, axis=0)
-    z_val = depth[int(centroid[1]), int(centroid[0])]
-    centroid = form2_conv_image_world(blender_utils.R, blender_utils.K, centroid, z_val)
-    centroid = (centroid[0], centroid[2], 0)
-    orien, rot = bbox_3d[i]['Orientation'], bbox_3d[i]['R']
-    dimension = bbox_3d[i]['Dim']
-    bird_view_orien = Matrix([[1, 0, 0],
-                                [0, 1, 0],
-                                [orien[0], orien[1], 0]])
-    relative_view = bird_view_orien.transposed() @ Matrix(rot)
-    euler_angles = relative_view.to_euler()
-    rotation = (euler_angles[0], euler_angles[1], euler_angles[2])
-    scale = np.array([0.01, 0.01, 0.01]) * scale_fac
-    blender_utils.SpawnObject(ASSETS_PATH+"Vehicles/SedanAndHatchback.blend", ["Car"], centroid, rotation, scale)
+# for i in range(0,len(bbox_3d)):
+#     box_3d = bbox_3d[i]['Box_3d']
+#     centroid = np.mean(box_3d, axis=0)
+#     z_val = depth[int(centroid[1]), int(centroid[0])]
+#     centroid = form2_conv_image_world(blender_utils.R, blender_utils.K, centroid, z_val)
+#     centroid = (centroid[0], centroid[2], 0)
+#     orien, rot = bbox_3d[i]['Orientation'], bbox_3d[i]['R']
+#     dimension = bbox_3d[i]['Dim']
+#     bird_view_orien = Matrix([[1, 0, 0],
+#                                 [0, 1, 0],
+#                                 [orien[0], orien[1], 0]])
+#     relative_view = bird_view_orien.transposed() @ Matrix(rot)
+#     euler_angles = relative_view.to_euler()
+#     rotation = (euler_angles[0], euler_angles[1], euler_angles[2])
+#     scale = np.array([0.01, 0.01, 0.01]) * scale_fac
+#     blender_utils.SpawnObject(ASSETS_PATH+"Vehicles/SedanAndHatchback.blend", ["Car"], centroid, rotation, scale)
     
-boxes_2d = object_detections['boxes']
-classes = object_detections['classes']
-scores = object_detections['scores']
-classes_names = object_detections['classes_names']
+# boxes_2d = object_detections['boxes']
+# classes = object_detections['classes']
+# scores = object_detections['scores']
+# classes_names = object_detections['classes_names']
 
-for i in range(0, len(boxes_2d)):
-    box = boxes_2d[i]
-    class_name = classes_names[classes[i]]
-    if class_name == "car":
-        continue
-    score = scores[i]
-    x_min, y_min, x_max, y_max = box
-    x = (x_min + x_max) / 2
-    y = (y_min + y_max) / 2
-    z = 0
-    centroid = form2_conv_image_world(blender_utils.R, blender_utils.K, (x, y), z)
-    centroid = (centroid[0], centroid[2], 0)
-    rotation = (0, 0, 0)
-    scale = np.array([0.01, 0.01, 0.01]) * scale_fac
-    blender_utils.SpawnObject(ASSETS_PATH+"Vehicles/SedanAndHatchback.blend", [class_name], centroid, rotation, scale)
+# for i in range(0, len(boxes_2d)):
+#     box = boxes_2d[i]
+#     class_name = classes_names[classes[i]]
+#     if class_name == "car":
+#         continue
+#     score = scores[i]
+#     x_min, y_min, x_max, y_max = box
+#     x = (x_min + x_max) / 2
+#     y = (y_min + y_max) / 2
+#     z = 0
+#     centroid = form2_conv_image_world(blender_utils.R, blender_utils.K, (x, y), z)
+#     centroid = (centroid[0], centroid[2], 0)
+#     rotation = (0, 0, 0)
+#     scale = np.array([0.01, 0.01, 0.01]) * scale_fac
+#     blender_utils.SpawnObject(ASSETS_PATH+"Vehicles/SedanAndHatchback.blend", [class_name], centroid, rotation, scale)
