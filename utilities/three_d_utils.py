@@ -32,7 +32,7 @@ def form2_conv_image_world(R,K,pts, depth) :
 #    depth = depth *1.5
     x = (u - cx) * depth / fx
     y = (v - cy) * depth / fy
-    z = depth
+    z = depth 
 #    x = scale_fac *  (u - cx) * depth / fx
 #    y = scale_fac *  (v - cy) * depth / fy
 #    z = depth*scale_fac
@@ -43,12 +43,12 @@ def form2_conv_image_world(R,K,pts, depth) :
     return xyz
 
 # Function to fit a Bezier curve to the points
-def fit_bezier_curve(points, smooth=0.2):
+def fit_bezier_curve(points, smooth=0.5):
     # Fit a Bézier curve to the points
     points = np.array(points)
     tck, _ = splprep(points.T, s=smooth)
     # Evaluate the Bézier curve at a higher resolution
-    u_new = np.linspace(0, 1, num=100)
+    u_new = np.linspace(0, 1, num=100)  #100
     curve_points = splev(u_new, tck)
     return curve_points
 
@@ -60,7 +60,7 @@ def sub_sample_points(points, n=5):
         sub_sampled_points.append(points[i])
     return sub_sampled_points
 
-def get_3d_lane_pts(R, K, lane_points, depth, lane_bbox):
+def get_3d_lane_pts(R, K, lane_points, depth, lane_bbox, scale_factor):
     lane_points = np.array(lane_points)
     lane_bbox = np.array(lane_bbox)
     lane_3d_pts = []
@@ -72,6 +72,9 @@ def get_3d_lane_pts(R, K, lane_points, depth, lane_bbox):
         y = point[1]
         z = depth[int(y), int(x)]
         (x, y, z) = form2_conv_image_world(R, K, (x, y), z)
+        #x = x*scale_factor
+        #y = y*scale_factor
+        #z = z*scale_factor
         lane_3d_pts.append((x, y, z))
         
     for i in range(len(lane_bbox)):
@@ -80,7 +83,11 @@ def get_3d_lane_pts(R, K, lane_points, depth, lane_bbox):
         y = point[1]
         z = depth[int(y), int(x)]
         (x, y, z) = form2_conv_image_world(R, K, (x, y), z)
+        #x = x*scale_factor
+        #y = y*scale_factor
+        #z = z*scale_factor
         lane_3d_bbox.append((x, y, z))
+    
     
     return lane_3d_pts, lane_3d_bbox
 
@@ -88,8 +95,26 @@ def get_3d_lane_pts(R, K, lane_points, depth, lane_bbox):
 def bezier_curve_filter(bezier_curve_points):
     filtered_bezier_curve_points = [[], [], []]
     for i in range(1, len(bezier_curve_points[0])):
-        print("Difference: ", bezier_curve_points[2][i] - bezier_curve_points[2][i - 1])
+        # print("Difference: ", bezier_curve_points[2][i] - bezier_curve_points[2][i - 1])
         if bezier_curve_points[2][i] - bezier_curve_points[2][i - 1] < -0.05:
             for j in range(3):
                 filtered_bezier_curve_points[j].append(bezier_curve_points[j][i])
     return filtered_bezier_curve_points
+
+def compute_control_points(points):
+    n = len(points) - 1
+    control_points = [points[0]]
+
+    for i in range(1, n):
+        new_points = []
+        for j in range(len(points) - i):
+            x = (1 - t) * points[j][0] + t * points[j + 1][0]
+            y = (1 - t) * points[j][1] + t * points[j + 1][1]
+            new_points.append((x, y))
+        control_points.append(new_points[0])
+        points = new_points
+
+    control_points.append(points[0])
+    return control_points
+
+

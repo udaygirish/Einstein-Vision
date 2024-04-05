@@ -125,8 +125,8 @@ class Blender_Utils:
         curve_data = bpy.data.curves.new(name="Bezier_Curve", type='CURVE')
         curve_data.dimensions = '3D'
         polyline = curve_data.splines.new('POLY')
-        polyline.points.add(len(points[0]))
-        for i, (x, y, z) in enumerate(zip(points[0], points[1], points[2])):
+        polyline.points.add(len(points[0])-1)
+        for i, (x, y, z) in enumerate(zip(points[0], points[1], sorted(points[2]))):
             polyline.points[i].co = (x, z,0, 1) # Aligning Y along z and setting z=0 to ensure the points are snapped to Ground
             # This errors are because of issues in finding the depth (Many inaccuracies) 
             # to reduce we do a direct snapping 
@@ -135,7 +135,21 @@ class Blender_Utils:
         bpy.context.collection.objects.link(curve_object)
         return curve_object
         
-    
+    def create_bezier_curve_from_points(self, points, name="Bezier_Curve"):
+    # Create curve object in Blender without using Poly
+        curve_data = bpy.data.curves.new(name="Bezier_Curve", type='CURVE')
+        curve_data.dimensions = '3D'
+        polyline = curve_data.splines.new('BEZIER')
+        polyline.bezier_points.add(len(points)-1)
+        for i, (x, y, z) in enumerate(points):
+            polyline.bezier_points[i].co = (x, z, 0)
+            polyline.bezier_points[i].handle_left = (x, z, 0)
+            polyline.bezier_points[i].handle_right = (x, z, 0)
+        
+        curve_object = bpy.data.objects.new(name="Bezier_Curve_Object", object_data=curve_data)
+        bpy.context.collection.objects.link(curve_object)
+        return curve_object
+        
     def create_road_surface(self):
         bpy.ops.mesh.primitive_plane_add(size=100, enter_editmode=False, align='WORLD', location=(0, 0, 0))
         road_surface = bpy.context.object
@@ -155,6 +169,27 @@ class Blender_Utils:
         # Add modifier 
         bpy.ops.object.modifier_add(type='ARRAY')
         bpy.context.object.modifiers["Array"].count = num_lanes
+        
+        # Position lane markings along the curve object
+        bpy.context.object.modifiers["Array"].use_constant_offset = True
+        bpy.context.object.modifiers["Array"].constant_offset_displace[0] = gap_length
+        bpy.ops.object.modifier_add(type='CURVE')
+        bpy.context.object.modifiers["Curve"].object = curve_object
+        
+        # Currently deforming along Position X as it is the current fit 
+        bpy.context.object.modifiers["Curve"].deform_axis = 'POS_X'
+        
+    def create_lane_markings_by_curve_length(self, curve_object, lane_width=4, lane_length=10, gap_length=1, num_lanes=10):
+        bpy.ops.mesh.primitive_cube_add(enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+        bpy.context.object.scale[1] = 0.1 * lane_width
+        bpy.context.object.scale[0] = 0.1* lane_length
+        bpy.context.object.scale[2] = 0.05
+        
+        # Add modifier 
+        bpy.ops.object.modifier_add(type='ARRAY')
+        # Length of the lane markings array should be the length of the curve object
+        bpy.context.object.modifiers["Array"].fit_type = 'FIT_CURVE'
+        bpy.context.object.modifiers["Array"].curve = curve_object
         
         # Position lane markings along the curve object
         bpy.context.object.modifiers["Array"].use_constant_offset = True

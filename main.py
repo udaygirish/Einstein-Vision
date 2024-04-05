@@ -35,6 +35,8 @@ from lib.lane_class_matcher import lane_class_matcher
 from lib.traffic_sign_thresholder import traffic_sign_threshold
 
 
+# Have to check how the Human in Blender thing works 
+
 BASE_PATH = "/home/udaygirish/Projects/WPI/computer_vision/project3/"
 def load_yolo3d_json(json_path):
     with open(json_path, 'r') as f:
@@ -108,7 +110,7 @@ def single_image_pipeline(image_path):
     print(type(lane_labels))
     
     # TOtal results
-    results = {
+    results1 = {
         'lanes': lanes,
         'object_detection': {
             'boxes': boxes_total,
@@ -124,22 +126,28 @@ def single_image_pipeline(image_path):
         'lane_labels': lane_labels,
         'yolo3d': out_Objects_3d
     }
-    final_lanes = lane_class_matcher(results)
+    
+    results = {
+        'depth': depth
+    }
+    final_lanes = lane_class_matcher(results1)
     
     results['final_lanes'] = final_lanes
-    return results
+    results1['final_lanes'] = final_lanes
+    return results, results1
     
 def main():
     # Function to process a image
     # Get objects and save as JSON
-    total_images = glob.glob("../P3Data/new_test/*.jpg")
+    total_images = glob.glob("../P3Data/Test_Images/Images_1_5_6_9_10/Images_1/*.jpg")
     print("Total Images: ", len(total_images))
     total_images = total_images
     total_images = sorted(total_images)
     #total_images = total_images[200:201]
     result_dict = {}
+    result_dict1 = {}
     for image_path in tqdm(total_images):
-        temp_results = single_image_pipeline(image_path)
+        temp_results, temp_results1 = single_image_pipeline(image_path)
         # print("Processing Image: ", image_path)
         # print("=====================================")
         # print("POSE DETECTION OUTPUT")
@@ -147,11 +155,15 @@ def main():
         # print("=====================================")
         # print(temp_results['yolo3d'])
         result_dict[image_path] = temp_results
+        result_dict1[image_path] = temp_results1
     
     
+    video_name = "video1"
     # Dump the results to pickle
-    with open(BASE_PATH+ "P3Data/results.pkl", 'wb') as f:
+    with open(BASE_PATH+ "P3Data/results_{}.pkl".format(video_name), 'wb') as f:
         pickle.dump(result_dict, f)
+    with open(BASE_PATH+ "P3Data/results1_{}.pkl".format(video_name), 'wb') as f:
+        pickle.dump(result_dict1, f)
     
     
 

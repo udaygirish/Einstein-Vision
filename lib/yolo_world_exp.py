@@ -16,16 +16,16 @@ from ultralytics import YOLO
 # results[0].show()
 
 
-
 def load_model():
     # classes
-    classes = ["car", "suv", "pickup truck" , "truck", "sedan", "person", "green traffic light", "red traffic light", "yellow traffic light", "traffic cone", "speed limit sign", "bicycle", "road sign", "stop sign", "speed breaker", "speed hump", "traffic cylinder"]
+    classes = ["car", "suv", "pickup truck" , "dust bin", "trash can", "truck", "sedan", "person", "green traffic light", "red traffic light", "yellow traffic light", "traffic cone", "speed limit sign", "bicycle", "road sign", "stop sign", "speed breaker", "speed hump", "traffic cylinder"]
     model = YOLO('yolov8x-worldv2.pt')
     model.set_classes(classes)
     return model
 
 def predict_image(model, img_path):
     results = model.predict(img_path)
+    #results[0].show()
     boxes_total = results[0].boxes.xywh.cpu().numpy()
     classes_total = results[0].boxes.cls.cpu().numpy()
     scores_total = results[0].boxes.conf.cpu().numpy()
@@ -45,7 +45,7 @@ def predict_image(model, img_path):
 
 def main():
     model = load_model()
-    image_path= "../../P3Data/test_video_frames/frame_0001.png"
+    image_path= "../../P3Data/test_video_frames/frame_0289.png"
     total_new = predict_image(model, image_path)
     
 if __name__ == '__main__':

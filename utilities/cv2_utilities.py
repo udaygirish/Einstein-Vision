@@ -165,3 +165,150 @@ def find_tip(points, convex_hull):
             j = length - j
         if np.all(points[j] == points[indices[i - 1] - 2]):
             return tuple(points[j])
+        
+def sampson_distance(F, p1, p2):
+    p1 = np.array(p1)
+    p2 = np.array(p2)
+    F = np.array(F)
+    return np.abs(p2.T @ F @ p1) / (np.sqrt(F @ p1 @ p1.T + F.T @ p2 @ p2.T))
+
+
+def compute_fundamental_matrix(img1, img2):
+    # Convert images to grayscale
+    gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+    
+    # Detect keypoints and descriptors
+    orb = cv2.ORB_create()
+    keypoints1, descriptors1 = orb.detectAndCompute(gray1, None)
+    keypoints2, descriptors2 = orb.detectAndCompute(gray2, None)
+    
+    # Match keypoints between the two images
+    matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    matches = matcher.match(descriptors1, descriptors2)
+    
+    # Extract corresponding keypoints
+    pts1 = np.float32([keypoints1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
+    pts2 = np.float32([keypoints2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
+    
+    # Compute fundamental matrix using RANSAC
+    fundamental_matrix, mask = cv2.findFundamentalMat(pts1, pts2, cv2.FM_RANSAC, 3.0, 0.99)
+    
+    return fundamental_matrix
+
+def compute_fundamental_matrix_sift(img1, img2):
+    # Convert images to grayscale
+    gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+    
+    # Detect keypoints and descriptors using SIFT
+    sift = cv2.SIFT_create()
+    keypoints1, descriptors1 = sift.detectAndCompute(gray1, None)
+    keypoints2, descriptors2 = sift.detectAndCompute(gray2, None)
+    
+    # Match keypoints between the two images
+    matcher = cv2.BFMatcher()
+    matches = matcher.knnMatch(descriptors1, descriptors2, k=2)
+    
+    # Apply ratio test to select good matches
+    good_matches = []
+    for m, n in matches:
+        if m.distance < 0.75 * n.distance:
+            good_matches.append(m)
+    
+    # Extract corresponding keypoints
+    pts1 = np.float32([keypoints1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+    pts2 = np.float32([keypoints2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+    
+    # Compute fundamental matrix using RANSAC
+    fundamental_matrix, mask = cv2.findFundamentalMat(pts1, pts2, cv2.FM_RANSAC, 3.0, 0.99)
+    
+    return fundamental_matrix
+
+def compute_intersection_point(epipolar_line, width, height):
+    """
+    Compute intersection point of epipolar line with image boundaries.
+    """
+    x0, y0, z0 = epipolar_line
+    if z0 != 0:
+        x_intersection = 0
+        y_intersection = int((-x0 * x_intersection - z0) / y0)
+        if 0 <= y_intersection < height:
+            return x_intersection, y_intersection
+        else:
+            y_intersection = height - 1
+            x_intersection = int((-y0 * y_intersection - z0) / x0)
+            if 0 <= x_intersection < width:
+                return x_intersection, y_intersection
+            else:
+                return None, None
+    else:
+        return None, None
+    
+# 
+def calculate_movement(image1, image2, bbox, flow, F):
+    """
+    This function classifies car movement in image2 within the bounding box (bbox) based on flow between image1 and image2 using Sampson distance and fundamental matrix.
+
+    Args:
+        image1 (np.ndarray): First image (grayscale).
+        image2 (np.ndarray): Second image (grayscale).
+        bbox (tuple): Bounding box coordinates (x1, y1, x2, y2).
+        flow (np.ndarray): Flow image representing displacement vectors.
+        F (np.ndarray): Fundamental matrix.
+
+    Returns:
+        bool: True if moving, False if static.
+    """
+
+    # Extract flow vectors and image dimensions within bounding box
+    flow_subset = flow[bbox[1]:bbox[3], bbox[0]:bbox[2]]
+    height, width = flow_subset.shape[:2]
+
+    # Select salient points within the bounding box using corner detection
+    corners = cv2.goodFeaturesToTrack(image1[bbox[1]:bbox[3], bbox[0]:bbox[2]], maxCorners=100, qualityLevel=0.01, minDistance=10)
+    points1 = np.int0(corners).reshape(-1, 2)
+
+    # Initialize list to store Sampson distances
+    sampson_distances = []
+
+    # Iterate through each point in the first frame within the bounding box
+    for point1 in points1:
+        x1, y1 = point1
+
+        # Extract flow vector for this point
+        flow_vec = flow_subset[y1, x1]
+
+        # Expected displacement based on flow
+        expected_displacement = flow_vec
+
+        # Reprojection using fundamental matrix
+        x1_homog = np.array([x1, y1, 1])
+        epipolar_line = np.dot(F, x1_homog)
+        x2_expected, y2_expected = compute_intersection_point(epipolar_line, width, height)
+
+        # Check if expected reprojected point is within image bounds
+        if x2_expected is not None and 0 <= x2_expected < width and 0 <= y2_expected < height:
+            actual_displacement = [image2[y2_expected, x2_expected] - image1[y1, x1]]
+
+            # Sampson distance calculation
+            sampson_distance = np.linalg.norm(expected_displacement - actual_displacement) ** 2 / (expected_displacement[0] ** 2)
+            sampson_distances.append(sampson_distance)
+
+    # Classification based on average Sampson distance and threshold
+    threshold = 2 # Adjust this based on your application and expected flow values
+    print(len(sampson_distances))
+    print("====================================")
+    print("Min Sampson Distance: ", np.min(sampson_distances))
+    print("Max Sampson Distance: ", np.max(sampson_distances))
+    print("Average Sampson Distance: ", np.mean(sampson_distances))
+    print("====================================")
+    if len(sampson_distances) == 0:
+        return True
+	
+    avg_sampson_distance = np.mean(sampson_distances)
+    print("Average Sampson Distance: ", avg_sampson_distance)
+    if avg_sampson_distance < threshold :
+        return True  # Moving
+    else:
+        return False  # Static

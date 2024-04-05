@@ -15,22 +15,22 @@ source ~/Projects/WPI/computer_vision/project3/blender-4.0.2-linux-x64/blender_e
 (p-partial, x - completed, " " - not completed) \
 implement/integration - reusable 
 
-    [] Implement Lane Detection 3D
+    [] Implement Lane Detection 3D (Not Required may be)
     [] Implement Scene Classification
     [x] Implement Object Detection - 2D 
     [x] Implement Object Detection - 3D
     [x] Implement Lane Detection 2D
     [p] Implement Lane Optimizer
     [x] Implement Human Pose Estimation 2D
-    [] Implement Human Pose Estimation 3D
+    [p] Implement Human Pose Estimation 3D - PyMaf 
     [p] Implement Lane Classifier
-    [] Implement Traffic Light Detection
+    [p] Implement Traffic Light Detection - Classification
     [p] Implement Panoptic Segmentation 
     [] Implement Human Pose Classification /Gesture Recognition
     [p] Implement Depth Estimation - Monocular Metric/Relative
-    [] Implement Vehicle Tail light Detection
-    [] Implement Vehicle Front light Detection
-    [] Implement Vehicle Subclassification
+    [IP] Implement Vehicle Tail light Detection
+    [IP] Implement Vehicle Front light Detection
+    [p] Implement Vehicle Subclassification - yolo world
     [] Implement Object Tracker
     [] Implement Pothole Detection
     [] Implement Speed Bump detection & Zebra crossing

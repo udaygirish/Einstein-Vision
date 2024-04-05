@@ -11,7 +11,8 @@
 import bpy 
 import numpy as np 
 import pickle 
-import sys 
+import sys
+
 
 
 
@@ -19,6 +20,16 @@ import sys
 bpy.ops.object.select_all(action='DESELECT')
 bpy.ops.object.select_by_type(type='MESH')
 bpy.ops.object.delete()
+
+# Deselect all objects (optional but recommended)
+bpy.ops.object.select_all(action='DESELECT')
+
+# Select all objects in the scene
+bpy.ops.object.select_all(action='SELECT')
+
+# Delete selected objects
+bpy.ops.object.delete()
+
 
 BASE_PATH = "/home/udaygirish/Projects/WPI/computer_vision/project3/"
 DATA_PATH = BASE_PATH + "P3Data/"
@@ -34,6 +45,11 @@ from utilities.three_d_utils import *
 from utilities.blender_utils import open_pickle_file
 import cv2 
 from blender.new_renderer import Blender_Utils 
+import matplotlib
+import matplotlib.pyplot as plt
+from PIL import Image
+
+matplotlib.use('Agg')
 
 blender_utils = Blender_Utils()
 
@@ -90,38 +106,111 @@ cv2.imwrite("lane_points.png", img)
 
 print("Length of Lane Points: ", len(final_lanes))
 
-print("Length of Lane Points BBX: ", len(final_lanes[1][0]))
+# print("Length of Lane Points BBX: ", len(final_lanes[1][0]))
 blender_utils.create_road_surface()
 scale_factor = get_scale_factor(depth)
-for i in final_lanes:
+# Create a empty image x 
+lane_total_3d_pts = []
+
+
+
+def func_filter_3d_points(lane_3d_pts):
+    filtered_lane_3d_pts = []
+    for i in range(1, len(lane_3d_pts)):
+        if lane_3d_pts[i][2] - lane_3d_pts[i - 1][2] < 0:
+            break
+        else:
+            filtered_lane_3d_pts.append(lane_3d_pts[i])
+    return filtered_lane_3d_pts
+
+for i in final_lanes[:3]:
     single_lane = i 
     lane_points = single_lane[0]
     lane_bbox = single_lane[1]
     lane_class = single_lane[2]
     
-    lane_subsampled_points = sub_sample_points(lane_points, 4)
+    lane_subsampled_points = sub_sample_points(lane_points, 1)
     
     
     lane_3d_pts, lane_3d_bbox = get_3d_lane_pts(R, K, lane_subsampled_points, depth, lane_bbox, scale_factor)
-    print("===================================="*3)
-    print(lane_subsampled_points)
-    print("===================================="*3)
-    print(lane_3d_pts)
-    print("===================================="*3)
+    # print("===================================="*3)
+    # print(lane_subsampled_points)
+    # print("===================================="*3)
+    # print(lane_3d_pts)
+    # print("===================================="*3)
+    
+    print("Lane 3d points before filtering", len(lane_3d_pts))
+    sorted(lane_3d_pts, key=lambda x: x[2])
+    lane_3d_pts = func_filter_3d_points(lane_3d_pts)
+    print("Lane 3d points after filtering", len(lane_3d_pts))
+    
+    temp_x, temp_z = [], []
+    for i in range(len(lane_3d_pts)):
+        # Plot the x and z points
+        point = lane_3d_pts[i]
+        temp_x.append(point[0])
+        temp_z.append(point[2])
+    #     # Plot a lane marking in matplotlib
+    lane_total_3d_pts.append({"x": temp_x, "z": temp_z})
+        # Sghow the plot
+    # Plot with matplotlib
+    
+    
+    
+    
+    
+    # for i in range(len(lane_3d_pts)):
+    #     point = lane_3d_pts[i]
+    #     # Plot a lane marking in blender 
+    #     bpy.ops.mesh.primitive_cube_add(size=0.1, location=point)
+    #     obj = bpy.context.active_object
+    #     obj.name = "Lane_Marking"
+    #     obj.scale = (0.1, 0.1, 0.1)
+    #     obj.location = (point[0], point[2], 0)
+    
+    
     filtered_lane_3d_pts = np.array(lane_3d_pts)
     
     bezier_curve_points = fit_bezier_curve(filtered_lane_3d_pts, smooth=0.5)
     print("Bezier Curve Points: ", bezier_curve_points)
-    bezier_curve_points = bezier_curve_filter(bezier_curve_points)
     
+    bezier_curve_points = bezier_curve_filter(bezier_curve_points)
+    bezier_curve_points = lane_3d_pts
     # Create curve object in Blender
-    curve_obj = blender_utils.create_bezier_curve(bezier_curve_points)
+    curve_obj = blender_utils.create_bezier_curve_from_points(bezier_curve_points)
     if lane_class == "solid-line":
-        blender_utils.create_lane_markings(curve_obj, lane_width=1, lane_length=10, gap_length=0, num_lanes=15)
+        blender_utils.create_lane_markings_by_curve_length(curve_obj, lane_width=1, lane_length=10, gap_length=0, num_lanes=15)
     else:
-        blender_utils.create_lane_markings(curve_obj, lane_width=1, lane_length=10, gap_length=1, num_lanes=8)
+        blender_utils.create_lane_markings_by_curve_length(curve_obj, lane_width=1, lane_length=10, gap_length=1, num_lanes=8)
         
-    print("Lane Generated")
+print("Lane Generated")
+    
+
+colors = ["red", "blue", "green"]
+print("Length of Lane Total 3D Points: ", len(lane_total_3d_pts))
+for i in range(len(lane_total_3d_pts)):
+    temp_lane = lane_total_3d_pts[i]
+    plt.scatter(temp_lane["x"], temp_lane["z"], color= colors[i])
+
+
+    
+plt.xlabel("X")
+plt.ylabel("Z")
+plt.savefig("lane_points_plot.png")
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
 
 # lane_subsampled_points = sub_sample_points(final_lanes[1][0], 5)
