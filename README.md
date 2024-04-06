@@ -15,7 +15,7 @@ source ~/Projects/WPI/computer_vision/project3/blender-4.0.2-linux-x64/blender_e
 (p-partial, x - completed, " " - not completed) \
 implement/integration - reusable 
 
-    [] Implement Lane Detection 3D (Not Required may be)
+    [] Implement Lane Detection 3D (Not Required may be) - Already perfect with bezier curves
     [] Implement Scene Classification
     [x] Implement Object Detection - 2D 
     [x] Implement Object Detection - 3D
@@ -33,9 +33,12 @@ implement/integration - reusable
     [p] Implement Vehicle Subclassification - yolo world
     [] Implement Object Tracker
     [] Implement Pothole Detection
-    [] Implement Speed Bump detection & Zebra crossing
+    [p] Implement Speed Bump detection & Zebra crossing (Zebra Crossing not implemented)
+    [x] Implement Vehicle State /Motion Estimator 
     [] Implement Collision Predictor
-    [] Implement Accident/Violation predictor
+    [] Implement Accident/Violation predictor 
+    [x] Implement OCR 
+    [] Implement Arrow direction visualization
 
 
 ### Architecture 

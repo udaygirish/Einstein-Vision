@@ -38,7 +38,7 @@ def predict_image(model, img_path):
     # print("====================================")
     return results, boxes_total, classes_total, scores_total, classes_names
 
-def get_movement_classification(img1, img2, boxes_total):
+def load_oflow_model():
     # Global variables for Model path
     config_file = 'models/raft_8x2_100k_flyingthings3d_sintel_368x768.py'
     checkpoint_file = 'models/raft_8x2_100k_flyingthings3d_sintel_368x768.pth'
@@ -46,10 +46,16 @@ def get_movement_classification(img1, img2, boxes_total):
     
     # init a model
     model = init_model(config_file, checkpoint_file, device=device)
+    return model
+
+def get_movement_classification(model, img1, img2, boxes_total):
+    
     # inference the demo image
     output = inference_model(model,img1, img2)
     
     flow_map = np.uint8(mmcv.flow2rgb(output) * 255.)
+    img1 = cv2.imread(img1)
+    img2 = cv2.imread(img2)
     # Find point correspondences between two images
     
     img1_gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)

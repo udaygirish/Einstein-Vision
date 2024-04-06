@@ -70,6 +70,8 @@ def get_3d_lane_pts(R, K, lane_points, depth, lane_bbox, scale_factor):
         point = lane_points[i]
         x = point[0]
         y = point[1]
+        if x < 0 or y < 0 or x >= depth.shape[1] or y >= depth.shape[0]:
+            continue
         z = depth[int(y), int(x)]
         (x, y, z) = form2_conv_image_world(R, K, (x, y), z)
         #x = x*scale_factor
@@ -82,6 +84,8 @@ def get_3d_lane_pts(R, K, lane_points, depth, lane_bbox, scale_factor):
         x = point[0]
         y = point[1]
         z = depth[int(y), int(x)]
+        if x < 0 or y < 0 or x >= depth.shape[1] or y >= depth.shape[0]:
+            continue
         (x, y, z) = form2_conv_image_world(R, K, (x, y), z)
         #x = x*scale_factor
         #y = y*scale_factor

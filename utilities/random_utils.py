@@ -34,5 +34,19 @@ def calculate_bbox_closeness(bbox1, bbox2):
     # Calculate the closeness of the bounding boxes
     return distance 
 
+def euc_distance(p1, p2):
+    distance = np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+    return distance
+
 # def associate_bboxes(bbox1_list, bbox2_list, threshold = 10):
 #     # Associate bounding boxes
+
+
+def func_filter_3d_points(lane_3d_pts):
+    filtered_lane_3d_pts = []
+    for i in range(1, len(lane_3d_pts)):
+        if lane_3d_pts[i][2] - lane_3d_pts[i - 1][2] < 0:
+            break
+        else:
+            filtered_lane_3d_pts.append(lane_3d_pts[i])
+    return filtered_lane_3d_pts
