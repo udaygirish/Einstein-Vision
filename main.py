@@ -55,22 +55,26 @@ def load_yolo3d_json(json_path):
 
 def load_all_models():
     # Load all the models
-    model_obj = load_model_det()
-    model_pose = load_model_pose()
+    #model_obj = load_model_det()
+    model_obj = None
+    #model_pose = load_model_pose()
+    model_pose = None
     model_depth = load_model_depth()
-    model_seg = load_model_seg()
+    #model_seg = load_model_seg()
+    model_seg = None
     lane_class = load_model_lane_classifier()
     vehicle_model = load_model_veh_ind()
     oflow_model = load_oflow_model()
     model_yolo_world = load_model_yworld()
+    model_yolo_world_min = load_model_yworld(classes = ["car", "truck", "bus", "motorbike", "bicycle", "person"])
     
-    return model_obj, model_pose, model_depth, model_seg, lane_class, vehicle_model, oflow_model, model_yolo_world
+    return model_obj, model_pose, model_depth, model_seg, lane_class, vehicle_model, oflow_model, model_yolo_world, model_yolo_world_min
 
 def single_image_pipeline(model_list, image_path_before, image_path):
     
     
     # Load all models
-    model_obj, model_pose, model_depth, model_seg, lane_class, vehicle_model, oflow_model, model_yolo_world = model_list
+    model_obj, model_pose, model_depth, model_seg, lane_class, vehicle_model, oflow_model, model_yolo_world, model_yolo_world_min = model_list
     
     
     # # Read image 
@@ -81,30 +85,39 @@ def single_image_pipeline(model_list, image_path_before, image_path):
     src, lanes = il_inf(image_path)
     
     # # Get Object Detection
-    obj_res, boxes_total, classes_total, scores_total, classes_names = predict_image_det(model_obj, image_path)
+    #obj_res, boxes_total, classes_total, scores_total, classes_names = predict_image_det(model_obj, image_path)
+    obj_res, boxes_total, classes_total, scores_total, classes_names = None, None, None, None, None
     
     # # Get Pose Detection
-    pose_res = predict_image_pose(model_pose, image_path)
+    #pose_res = predict_image_pose(model_pose, image_path)
+    pose_res = None
     
     # # Get depth
     depth = run_inference_depth(model_depth, image_path)
     
     # # Get Segmentation
-    seg_res = predict_image_seg(model_seg, image_path)
+    # seg_res = predict_image_seg(model_seg, image_path)
+    seg_res = None
     
+    world_results, world_boxes, world_classes, world_scores, world_classes_names = predict_image_yworld(model_yolo_world, image_path)
+    
+    world_results_min, world_boxes_min, world_classes_min, world_scores_min, world_classes_names_min = predict_image_yworld(model_yolo_world_min, image_path)
     # # lane classification
     lane_masks, lane_boxes, lane_labels = infer_image_lane_classifier(lane_class, image_path)
     
-    # Currently traffic sign detection is from yolo 
-    filtered_boxes, filtered_classes, filtered_scores, filtered_classes_names = get_filter_boxes(boxes_total, classes_total, scores_total, classes_names, ["car", "truck", "bus", "motorbike", "bicycle", "person"])
-    
-    moving_labels_list = get_movement_classification(oflow_model, image_path_before, image_path, filtered_boxes)
-    
-    filtered_boxes1, filtered_classes1, filtered_scores1, filtered_classes_names1 = get_filter_boxes(boxes_total, classes_total, scores_total, classes_names, ["car", "truck"])
-    
     vehicle_results, vehicle_boxes, vehicle_classes, vehicle_scores, vehicle_classes_names = predict_image_ind_classes(vehicle_model, image_path)
+    # Currently traffic sign detection is from yolo 
+    #filtered_boxes, filtered_classes, filtered_scores, filtered_classes_names = get_filter_boxes(world_boxes_min, world_classes_min, world_scores_min, world_classes_min , ["car", "truck", "bus", "motorbike", "bicycle", "person"])
     
-    world_results, world_boxes, world_classes, world_scores, world_classes_names = predict_image_yworld(model_yolo_world, image_path)
+    moving_labels_list = get_movement_classification(oflow_model, image_path_before, image_path, world_boxes_min)
+    
+    #filtered_boxes1, filtered_classes1, filtered_scores1, filtered_classes_names1 = get_filter_boxes(world_boxes, world_classes, world_scores, world_classes_names, ["car", "truck"])
+    
+    
+    
+    
+    
+    
     # Get YOlo3d 
     # Defining some variables - Shift Later
     BASE_PATH = "/home/udaygirish/Projects/WPI/computer_vision/project3/"
@@ -137,7 +150,7 @@ def single_image_pipeline(model_list, image_path_before, image_path):
         'yolo3d': out_Objects_3d,
         'optical_flow': {
             'moving_labels': moving_labels_list,
-            'filtered_boxes': filtered_boxes,
+            'filtered_boxes': world_boxes_min,
         },
         'object_detection_yworld': {
             'boxes': world_boxes,
@@ -163,29 +176,31 @@ def single_image_pipeline(model_list, image_path_before, image_path):
 def main():
     # Function to process a image
     # Get objects and save as JSON
-    total_images = glob.glob("../P3Data/test_video_frames/*.png")
+    total_images = glob.glob("../P3Data/FinalImages/Images_10/*.jpg")
     print("Total Images: ", len(total_images))
     K, R = get_hardcoded_KR()
     total_images = total_images
     total_images = sorted(total_images)
-    total_images = total_images[:3]
+    #total_images = total_images[:3]
     print("Total Images: ", len(total_images))
     result_dict = {}
     model_list = load_all_models()
     for i in tqdm(range(len(total_images)-1)):
         img1_path = total_images[i]
         img2_path = total_images[i+1]
+        print("===================================="*3)
         print("Image 1: ", img1_path)
         print("Image 2: ", img2_path)
+        print("===================================="*3)
         temp_results = single_image_pipeline(model_list, img1_path,img2_path)
-        results = data_processor(temp_results, img2_path)
-        result_dict[img2_path] = temp_results
+        results_f_3d = data_processor(temp_results, img2_path)
+        result_dict[img2_path] = results_f_3d
     
     
-    # video_name = "video1"
+    video_name = "video10"
     # Dump the results to pickle
-    # with open(BASE_PATH+ "P3Data/results_{}.pkl".format(video_name), 'wb') as f:
-    #     pickle.dump(result_dict, f)
+    with open(BASE_PATH+ "P3Data/results_{}.pkl".format(video_name), 'wb') as f:
+        pickle.dump(result_dict, f)
     
     
 

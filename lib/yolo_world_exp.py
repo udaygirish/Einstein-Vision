@@ -16,9 +16,9 @@ from ultralytics import YOLO
 # results[0].show()
 
 
-def load_model_yworld():
+def load_model_yworld(classes = ["car", "suv", "pickup truck" , "dust bin", "trash can", "truck", "sedan", "person", "green traffic light", "red traffic light", "yellow traffic light", "traffic cone", "speed limit sign", "bicycle", "road sign", "stop sign", "speed breaker", "speed hump", "traffic cylinder", "parking meter"]):
     # classes
-    classes = ["car", "suv", "pickup truck" , "dust bin", "trash can", "truck", "sedan", "person", "green traffic light", "red traffic light", "yellow traffic light", "traffic cone", "speed limit sign", "bicycle", "road sign", "stop sign", "speed breaker", "speed hump", "traffic cylinder"]
+    classes = classes
     model = YOLO('yolov8x-worldv2.pt')
     model.set_classes(classes)
     return model

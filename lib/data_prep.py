@@ -15,9 +15,6 @@ from mathutils import Matrix, Vector
 from config.blender_config import YOLOCLASSES_TO_BLENDER, Blender_rot_scale
 import cv2
 
-def do_nothing():
-    print("Doing Nothing")
-    return None
 
 
 def data_processor(results, image_path):
@@ -126,7 +123,8 @@ def data_processor(results, image_path):
     
     print("Length of the Yolo3d: ", len(ob_yolo3d))
     print("Lenght of the Yolo world boxes: ", len(ob_world_boxes))
-    print("Sample BBOX3d: ", ob_yolo3d[0])
+    print("Length of the vehicle boxes: ", len(ob_vehicle_boxes))
+    print("Length of the filtered boxes: ", len(filtered_boxes))
     
     # For now neglect using the Yolov8 
     # Let us yolo world to make it fast 
@@ -146,6 +144,7 @@ def data_processor(results, image_path):
         'scale': [],
         'score': 0.0,
         'state_label': "",
+        "moving_label": "",
         'avg_velocity': [],
         'track_id': 0,
         'pose_path': ""
@@ -155,16 +154,16 @@ def data_processor(results, image_path):
             obj_counter = []
             state_label = "NA"
             for i in range(len(ob_yolo3d)):
-                c_name = ob_yolo3d[i]['class_name']
+                c_name = ob_yolo3d[i]['Class']
                 if c_name in vehicle_types:
-                    temp_box_2d  = ob_yolo3d[i]['bbox_2d']
+                    temp_box_2d  = ob_yolo3d[i]['Box_2d']
                     x,y = np.mean(temp_box_2d, axis = 0)
                     distances.append(euc_distance([x,y], [box[0], box[1]]))
                     obj_counter.append(i)
             if len(distances) == 0:
                 centroid = (box[0], box[1])
                 z_val = depth[int(centroid[1]), int(centroid[0])]
-                centroid = form2_conv_image_world(R, K, (x, y), z_val)
+                centroid = form2_conv_image_world(R, K, (centroid[0], centroid[1]), z_val)
                 centroid = [centroid[0], centroid[2], 0]
                 if centroid in visited_locations:
                     continue
@@ -174,9 +173,9 @@ def data_processor(results, image_path):
             else:
                 min_index = np.argmin(distances)
                 obj_det = ob_yolo3d[obj_counter[min_index]]
-                box_2d = obj_det['bbox_2d']
-                class_name = obj_det['class_name']
-                orientation = obj_det['orientation']
+                box_2d = obj_det['Box_2d']
+                class_name = obj_det['Class']
+                orientation = obj_det['Orientation']
                 cent = np.mean(box_2d, axis = 0)
                 z_val = depth[int(cent[1]), int(cent[0])]
                 centroid = form2_conv_image_world(R, K, (cent[0], cent[1]), z_val)
@@ -185,14 +184,14 @@ def data_processor(results, image_path):
                 if centroid in visited_locations:
                     continue
                 visited_locations.append(centroid)
-                orien, rot = obj_det['orientation'], obj_det['R']
+                orien, rot = obj_det['Orientation'], obj_det['R']
                 
                 bird_view_orien = Matrix([[1, 0, 0], [0, 1, 0], [orien[0], orien[1], 0]])
                 relative_view = bird_view_orien.transposed() @ Matrix(rot)
                 euler_angles = relative_view.to_euler()
                 euler_angles += np.array(Blender_rot_scale[class_name]['orientation'])
                 scale = np.array(Blender_rot_scale[class_name]['scale'])
-                veh_class_distance = []
+            veh_class_distance = []
             if class_name in vehicle_types[:4]:
                 for k in range(len(ob_vehicle_boxes)):
                     temp_x1, temp_y1 = ob_vehicle_boxes[k][0], ob_vehicle_boxes[k][1]
@@ -203,6 +202,19 @@ def data_processor(results, image_path):
                 else:
                     min_index = np.argmin(veh_class_distance)
                     state_label = ob_vehicle_classes_names[min_index]
+            
+            mov_label_distance = []
+            moving_label = "Moving"  # Default label
+            # Checking for the moving non moving label
+            for k in range(len(filtered_boxes)):
+                temp_x1, temp_y1 = filtered_boxes[k][0], filtered_boxes[k][1]
+                temp_x2, temp_y2 = box[0], box[1]
+                mov_label_distance.append(euc_distance([temp_x1, temp_y1], [temp_x2, temp_y2]))
+                if len(mov_label_distance) == 0:
+                    moving_label = "Moving"
+                else:
+                    min_index = np.argmin(mov_label_distance)
+                    moving_label = moving_labels[min_index]
             temp_obj_dict['3d_world_coords'] = centroid
             temp_obj_dict['bbox_2d'] = box
             temp_obj_dict['class_name'] = class_name
@@ -210,20 +222,21 @@ def data_processor(results, image_path):
             temp_obj_dict['scale'] = scale
             temp_obj_dict['score'] = score
             temp_obj_dict['state_label'] = state_label
+            temp_obj_dict['moving_label'] = moving_label
             total_objects.append(temp_obj_dict)
             
         elif class_name in traffic_light_types:
             distances = []
             for i in range(len(ob_yolo3d)):
-                c_name = ob_yolo3d[i]['class_name']
-                temp_box_2d  = ob_yolo3d[i]['bbox_2d']
+                c_name = ob_yolo3d[i]['Class']
+                temp_box_2d  = ob_yolo3d[i]['Box_2d']
                 x,y = np.mean(temp_box_2d, axis = 0)
                 distances.append(euc_distance([x,y], [box[0], box[1]]))
             min_index = np.argmin(distances)
             obj_det = ob_yolo3d[min_index]
-            box_2d = obj_det['bbox_2d']
-            class_name_ = obj_det['class_name']
-            orientation = obj_det['orientation']
+            box_2d = obj_det['Box_2d']
+            class_name_ = obj_det['Class']
+            orientation = obj_det['Orientation']
             cent = np.mean(box_2d, axis = 0)
             z_val = depth[int(cent[1]), int(cent[0])]
             centroid = form2_conv_image_world(R, K, (cent[0], cent[1]), z_val)
@@ -283,23 +296,22 @@ def data_processor(results, image_path):
                 temp_obj_dict['orientation'] = euler_angles
                 temp_obj_dict['scale'] = scale
                 temp_obj_dict['score'] = score
-            else:
-                class_name = 'NA'
-                centroid = [box[0], box[1]]
-                z_val = depth[int(centroid[1]), int(centroid[0])]
-                centroid = form2_conv_image_world(R, K, (centroid[0], centroid[1]), z_val)
-                centroid = [centroid[0], centroid[2], 0]
-                if centroid in visited_locations:
-                    continue
-                visited_locations.append(centroid)
-                euler_angles = Blender_rot_scale[class_name]['orientation']
-                scale = np.array(Blender_rot_scale[class_name]['scale'])
-                temp_obj_dict['3d_world_coords'] = centroid
-                temp_obj_dict['bbox_2d'] = box
-                temp_obj_dict['class_name'] = class_name
-                temp_obj_dict['orientation'] = euler_angles
-                temp_obj_dict['scale'] = scale
-                temp_obj_dict['score'] = score
+            # else:
+            #     centroid = [box[0], box[1]]
+            #     z_val = depth[int(centroid[1]), int(centroid[0])]
+            #     centroid = form2_conv_image_world(R, K, (centroid[0], centroid[1]), z_val)
+            #     centroid = [centroid[0], centroid[2], 0]
+            #     if centroid in visited_locations:
+            #         continue
+            #     visited_locations.append(centroid)
+            #     euler_angles = Blender_rot_scale[class_name]['orientation']
+            #     scale = np.array(Blender_rot_scale[class_name]['scale'])
+            #     temp_obj_dict['3d_world_coords'] = centroid
+            #     temp_obj_dict['bbox_2d'] = box
+            #     temp_obj_dict['class_name'] = class_name
+            #     temp_obj_dict['orientation'] = euler_angles
+            #     temp_obj_dict['scale'] = scale
+            #     temp_obj_dict['score'] = score
         else:
             centroid = [box[0], box[1]]
             z_val = depth[int(centroid[1]), int(centroid[0])]

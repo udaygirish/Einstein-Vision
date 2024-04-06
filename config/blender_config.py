@@ -31,6 +31,7 @@ Blender_rot_scale = {
     'fire' : {'orientation': (0,0,0) , 'scale' : (.2,.2,.2)}, # Done
     'motorcycle' : {'orientation': (1.57,0,1.57) , 'scale' : (.006,.006,.006)}, # Done
     'parking meter' : {'orientation': (0,0,3.14) , 'scale' : (.6,.6,.6)}, # Done
+    'speed limit sign' : {'orientation': (0,0,3.14) , 'scale' : (.6,.6,.6)},
     'person' : {'orientation': (1.57,0,3.14) , 'scale' : (.015,.015,.015)}, # Done
     'stop sign' : {'orientation': (4.71,3.14,1.57) , 'scale' : (.45,.45,.45)}, # Done
     'traffic cone' : {'orientation': (0,0,0) , 'scale' : (.2,.2,.2)}, # Done

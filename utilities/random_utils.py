@@ -13,7 +13,9 @@ def get_filter_boxes(boxes, classes, scores, classes_names, filter_classes):
     print("Type of filter_classes: ", type(filter_classes))
     print("Type of scores: ", type(scores))
     
+    print("Class names: ", classes_names)
     for i in range(len(boxes)):
+        print("Class: ", classes[i])
         if classes_names[int(classes[i])] in filter_classes:
             filtered_boxes.append(boxes[i])
             filtered_classes.append(classes[i])
