@@ -14,9 +14,9 @@ from ultralytics import YOLO
 
 # # Show results
 # results[0].show()
+#["car", "suv", "pickup truck" , "truck", "sedan", "person", "green traffic light", "red traffic light", "yellow traffic light", "traffic cone", "speed limit sign", "bicycle", "road sign", "stop sign", "speed breaker", "speed hump", "traffic cylinder", "parking meter", "dust bin", "trash can",]
 
-
-def load_model_yworld(classes = ["car", "suv", "pickup truck" , "dust bin", "trash can", "truck", "sedan", "person", "green traffic light", "red traffic light", "yellow traffic light", "traffic cone", "speed limit sign", "bicycle", "road sign", "stop sign", "speed breaker", "speed hump", "traffic cylinder", "parking meter"]):
+def load_model_yworld(classes = ["car", "suv", "pickup truck" , "truck", "sedan", "person", "bicycle", "motorcycle", "green traffic light", "red traffic light", "yellow traffic light", "traffic cone", "road sign", "stop sign", "speed hump", "hump", "traffic cylinder", "parking meter", "dust bin", "trash can"]):
     # classes
     classes = classes
     model = YOLO('yolov8x-worldv2.pt')
@@ -33,7 +33,7 @@ def predict_image_yworld(model, img_path):
     classes_names = []
     for i in range(len(classes_total)):
         classes_names.append(total_labels[classes_total[i]])
-        
+    print("YOLO WORLD MAIN Class Names: ", classes_names)
     # print("====================================")
     # print("Predictions")
     # print("Boxes: ", boxes_total)

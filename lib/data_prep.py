@@ -62,6 +62,7 @@ def data_processor(results, image_path):
     K, R = get_hardcoded_KR()
     
     total_lane_3d_points = []
+    total_lane_classes = []
     
     for i in range(len(final_lanes)):
         lane = final_lanes[i]
@@ -75,9 +76,11 @@ def data_processor(results, image_path):
         lane_3d_pts = func_filter_3d_points(lane_3d_pts)
     
         total_lane_3d_points.append(lane_3d_pts)
+        total_lane_classes.append(lane_class)
     
     
     results_3d['lane_3d_points'] = total_lane_3d_points
+    results_3d['lane_classes'] = total_lane_classes
     
     # Each object detection class has the following structure
     '''
@@ -259,6 +262,7 @@ def data_processor(results, image_path):
             continue
     
         elif class_name == "road sign":
+            print("Im in Road Sign")
             image = cv2.imread(image_path)
             bbox_img = image[int(box[1] - box[3]/2):int(box[1] + box[3]/2), int(box[0] - box[2]/2):int(box[0] + box[2]/2)]
             DetText, DetNumBool = ocr_run(bbox_img)
@@ -313,6 +317,7 @@ def data_processor(results, image_path):
             #     temp_obj_dict['scale'] = scale
             #     temp_obj_dict['score'] = score
         else:
+            print("Im in ELSE NO CLASS")
             centroid = [box[0], box[1]]
             z_val = depth[int(centroid[1]), int(centroid[0])]
             centroid = form2_conv_image_world(R, K, (centroid[0], centroid[1]), z_val)

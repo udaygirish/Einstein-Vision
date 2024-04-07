@@ -18,7 +18,7 @@ def run_inference(model, image_path):
     image = Image.open(image_path).convert("RGB")
     depth_numpy = model.infer_pil(image)
     depth_tensor = model.infer_pil(image, output_type="tensor")
-    depth_pil = model.infer_pil(image, output_type="pil")
+    #depth_pil = model.infer_pil(image, output_type="pil")
     
     depth = depth_tensor.cpu().numpy()
     return depth 

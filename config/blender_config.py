@@ -27,6 +27,7 @@ Blender_rot_scale = {
     'bicycle' : {'orientation': (1.57,0,0) , 'scale' : (.15,.15,.15)}, # Done
     'car' : {'orientation': (0,0,3.14) , 'scale' : (.015,.015,.015)}, # Done
     'dustbin' : {'orientation': (1.57,0,0) , 'scale' : (1,1,1)}, # Bin_Mesh.072
+    'dust bin' : {'orientation': (1.57,0,0) , 'scale' : (1,1,1)},
     'trash can' : {'orientation': (1.57,0,0) , 'scale' : (1.1,1.1,1.1)}, # Bin_Mesh.072
     'fire' : {'orientation': (0,0,0) , 'scale' : (.2,.2,.2)}, # Done
     'motorcycle' : {'orientation': (1.57,0,1.57) , 'scale' : (.006,.006,.006)}, # Done
