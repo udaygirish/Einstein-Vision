@@ -267,6 +267,8 @@ def calculate_movement(image1, image2, bbox, flow, F):
 
     # Select salient points within the bounding box using corner detection
     corners = cv2.goodFeaturesToTrack(image1[bbox[1]:bbox[3], bbox[0]:bbox[2]], maxCorners=100, qualityLevel=0.01, minDistance=10)
+    if corners is None:
+        return False
     points1 = np.int0(corners).reshape(-1, 2)
 
     # Initialize list to store Sampson distances
@@ -297,17 +299,17 @@ def calculate_movement(image1, image2, bbox, flow, F):
 
     # Classification based on average Sampson distance and threshold
     threshold = 2 # Adjust this based on your application and expected flow values
-    print(len(sampson_distances))
-    print("====================================")
-    print("Min Sampson Distance: ", np.min(sampson_distances))
-    print("Max Sampson Distance: ", np.max(sampson_distances))
-    print("Average Sampson Distance: ", np.mean(sampson_distances))
-    print("====================================")
+    # print(len(sampson_distances))
+    # print("====================================")
+    # print("Min Sampson Distance: ", np.min(sampson_distances))
+    # print("Max Sampson Distance: ", np.max(sampson_distances))
+    # print("Average Sampson Distance: ", np.mean(sampson_distances))
+    # print("====================================")
     if len(sampson_distances) == 0:
         return True
 	
     avg_sampson_distance = np.mean(sampson_distances)
-    print("Average Sampson Distance: ", avg_sampson_distance)
+    # print("Average Sampson Distance: ", avg_sampson_distance)
     if avg_sampson_distance < threshold :
         return True  # Moving
     else:

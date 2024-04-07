@@ -32,7 +32,14 @@ from lib.yolov8_pose import predict_image as predict_image_pose
 from lib.yolov8_seg import load_model as load_model_seg
 from lib.yolov8_seg import predict_image as predict_image_seg
 from lib.lane_class_matcher import lane_class_matcher
-from lib.traffic_sign_thresholder import traffic_sign_threshold
+from lib.traffic_sign_thresholder import *
+from lib.optical_flow import *
+from lib.vehicle_indicators import *
+
+from utilities.cv2_utilities import *
+from utilities.blender_utils import *
+from utilities.three_d_utils import *
+from utilities.random_utils import *
 
 
 # Have to check how the Human in Blender thing works 
@@ -43,8 +50,7 @@ def load_yolo3d_json(json_path):
         data = json.load(f)
     return data
 
-
-def single_image_pipeline(image_path):
+def single_image_pipeline(image_path_before, image_path):
     
     # Read image 
     image = Image.open(image_path).convert("RGB")
@@ -54,10 +60,36 @@ def single_image_pipeline(image_path):
     print("Lanes: ", lanes)
     
     # Get Object Detection
+    model_obj = load_model_det()
+    obj_res, boxes_total, classes_total, scores_total, classes_names = predict_image_det(model_obj, image_path)
+    
+    # Get Pose Detection
+    model_pose = load_model_pose()
+    pose_res = predict_image_pose(model_pose, image_path)
+    
+    # Get depth
+    model_depth = load_model_depth()
+    depth = run_inference_depth(model_depth, image_path)
+    
+    # Get Segmentation
+    model_seg = load_model_seg()
+    seg_res = predict_image_seg(model_seg, image_path)
     
     # lane classification
     lane_class = load_model_lane_classifier()
     lane_masks, lane_boxes, lane_labels = infer_image_lane_classifier(lane_class, image_path)
+    
+    # Traffic Sign Detection
+    traffic_sign_boxes = get_traffic_signs(boxes_total, classes_total, scores_total, classes_names)
+    
+    filtered_boxes, filtered_classes, filtered_scores, filtered_classes_names = get_filter_boxes(boxes_total, classes_total, scores_total, classes_names, ["car", "truck", "bus", "motorbike", "bicycle", "person"])
+    
+    moving_labels_list = get_movement_classification(image_path_before, image_path, filtered_boxes)
+    
+    filtered_boxes1, filtered_classes1, filtered_scores1, filtered_classes_names1 = get_filter_boxes(boxes_total, classes_total, scores_total, classes_names, ["car", "truck"])
+    
+    vehicle_model = load_model_veh_ind()
+    vehicle_results, vehicle_boxes, vehicle_classes, vehicle_scores, vehicle_classes_names = predict_image_ind_classes(vehicle_model, image_path)
     
     
     # Get YOlo3d 
@@ -67,7 +99,14 @@ def single_image_pipeline(image_path):
     MODEL_SELECT = "resnet" 
     CALIB_FILE_PATH = "../Object_Detection/YOLO3D/eval/camera_cal/calib_cam_to_cam.txt"
     print("IN YOLO 3d")
-
+    out_Objects_3d = detect3d(BASE_PATH+D3_WEIGHTS_PATH,
+                              MODEL_SELECT,
+                              [image_path],
+                                CALIB_FILE_PATH,
+                                show_result=False,
+                                save_result=False,
+                                output_path=None)
+    
     # Temp method to use the 3d json file directly 
     # YOLO_3D_JSON_PATH = "P3Data/frames_test_yolo3d.json"
     
@@ -78,16 +117,35 @@ def single_image_pipeline(image_path):
     
     # print("Type of all the outputs")
     
+    print(type(lanes))
+    print(type(obj_res))
+    print(type(pose_res))
+    print(type(depth))
+    print(type(seg_res))
+    print(type(lane_masks))
+    print(type(lane_boxes))
+    print(type(lane_labels))
     
     # TOtal results
     results1 = {
         'lanes': lanes,
+        'object_detection': {
+            'boxes': boxes_total,
+            'classes': classes_total,
+            'scores': scores_total,
+            'classes_names': classes_names
+        },
+        'pose_detection': pose_res,
+        'depth': depth,
+        'segmentation': seg_res,
         'lane_masks': lane_masks,
         'lane_boxes': lane_boxes,
         'lane_labels': lane_labels,
+        'yolo3d': out_Objects_3d
     }
     
     results = {
+        'depth': depth
     }
     final_lanes = lane_class_matcher(results1)
     
@@ -98,26 +156,23 @@ def single_image_pipeline(image_path):
 def main():
     # Function to process a image
     # Get objects and save as JSON
-    total_images = glob.glob("../P3Data/Test_Images/Images_1_5_6_9_10/Images_10/*.jpg")
+    total_images = glob.glob("../P3Data/test_video_frames/*.png")
     print("Total Images: ", len(total_images))
     total_images = total_images
     total_images = sorted(total_images)
-    #total_images = total_images[200:201]
+    print(total_images)
+    total_images = total_images[:10]
     result_dict = {}
     result_dict1 = {}
-    for image_path in tqdm(total_images):
-        temp_results, temp_results1 = single_image_pipeline(image_path)
-        # print("Processing Image: ", image_path)
-        # print("=====================================")
-        # print("POSE DETECTION OUTPUT")
-        # print(temp_results['pose_detection'])
-        # print("=====================================")
-        # print(temp_results['yolo3d'])
-        result_dict[image_path] = temp_results
-        result_dict1[image_path] = temp_results1
+    for i in tqdm(range(len(total_images))):
+        img1_path = total_images[i]
+        img2_path = total_images[i+1]
+        temp_results, temp_results1 = single_image_pipeline(img1_path,img2_path)
+        result_dict[img2_path] = temp_results
+        result_dict1[img2_path] = temp_results1
     
     
-    video_name = "video10"
+    video_name = "video1"
     # Dump the results to pickle
     with open(BASE_PATH+ "P3Data/results_{}.pkl".format(video_name), 'wb') as f:
         pickle.dump(result_dict, f)

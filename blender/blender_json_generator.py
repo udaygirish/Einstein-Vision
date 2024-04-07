@@ -26,7 +26,6 @@ bpy.ops.object.select_all(action='DESELECT')
 
 # Select all objects in the scene
 bpy.ops.object.select_all(action='SELECT')
-b 
 # Delete selected objects
 bpy.ops.object.delete()
 
