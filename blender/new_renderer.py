@@ -65,7 +65,7 @@ class Blender_Utils:
     # 5. Add function to switch between cameras
     # 6. Add Support to render both cameras
     
-    def __init__(self, object_names=None):
+    def __init__(self, assets_path = ASSETS_PATH, object_names=None):
         self.description = "Blender Utilities to play with objects and cameras"
         self.K = np.array([[1622.30674706393,0.0,681.0156669556608],
              [0.0,1632.8929856491513,437.0195537829288],
@@ -75,51 +75,101 @@ class Blender_Utils:
             [0, 1, 0, 0],
             [0, 0, 1, 1.5],
             [0, 0, 0, 1]])
-        self.first_person_camera_location = (0, -5,0.5) 
+        self.first_person_camera_location = (0, 0,1.5) 
         self.first_person_camera_rotation = (1.57, 0, 0)
         
-        self.third_person_camera_location = (3, -4, 1)
+        self.third_person_camera_location = (3, 0, 1)
         self.third_person_camera_rotation = (1.57,0, 0.75)
         
         self.render_width = 1920
         self.render_height = 1080
         
-        if object_names is None:
-            self.vehicles = ["Bicycle", "PickupTruck", "SedanAndHatchback", "SUV", "Truck"]
-            self.entities = ["Dustbin", "Pedestrain", "SpeedLimitSign", "StopSign", "TrafficAssets", "TrafficConeAndCylinder", "TrafficSignal"]
-
-        self.vehicles_path = ASSETS_PATH + "Vehicles/"
-        self.entities_path = ASSETS_PATH + "/*.blend"
-        self.stop_sign_image_path = ASSETS_PATH + "StopSignImage.png"
-        self.speed_limit_image_path = ASSETS_PATH + "Speed_Limit_blank_sign.svg"
-        self.global_objects = ['Camera', 'Sun', 'Light']
+        self.veh_path = assets_path + "Vehicles/"
+        self.ent_path = assets_path + "Entities/"
+        self.mod_ent_path = assets_path + "Mod_Entities/"
+        self.mod_veh_path = assets_path + "Vehicles_RedLight/"   
+        self.global_exclude_objects = ['Camera', 'Sun', 'Light', 'Cube']
+        # Delete object when initialzing the class to 
+        # clear  the scene with all the objects 
+        self.delete_all_objects()
+        
+        # Setup the camera when the render loads 
+        self.setup_camera_first_person_view()
+        
+        
+        # Load Object when initializing the class 
+        self.objects =  self.load_blend_objects()
+        
+        
+    def setup_light_source(self):
+        if not bpy.data.objects.get("SUN"):
+            bpy.ops.object.light_add(type='SUN', location = self.light_location)
+            light = bpy.context.object
+            light.name = "Sun"
+            light.data.energy = 2.0
+            light.data.use_shadow = True
+        self.light_source = bpy.data.objects["Sun"]
+        
             
     def delete_all_objects(self):
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete()
         
-    def load_blend_objects(self, file_path):
-        vehicles_path = self.vehicles_path
-        entities_path = self.entities_path
-        vehicles_objects, entities_objects = [], []
+    def delete_all_objects_except_camera(self):
+        bpy.ops.object.select_all(action='DESELECT')
+        if self.camera:
+            self.camera.select_set(True)
+        bpy.ops.object.delete()
         
-        # Load Vehicle Objects
-        for blend_file in sorted(os.listdir(vehicles_path)):
-            with bpy.data.libraries.load(vehicles_path+ blend_file) as (data_from, vehicle_data):
-                for obj in data_from.objects:
-                    if obj is not None and obj not in self.global_objects:
-                        vehicle_data.objects.append(obj)
-            vehicles_objects.append(vehicle_data.objects)
+    def delete_from_scene(self):
+        scene = bpy.context.scene 
+        for obj in scene.objects:
+            bpy.context.view_layer.objects.active = obj
+            bpy.ops.object.delete()
+    
         
-        # Load Entities - Traffic Signals and all
-        for blend_file in sorted(os.listdir(entities_path)):
-            with bpy.data.libraries.load(entities_path+ blend_file) as (data_from, entity_data):
-                for obj in data_from.objects:
-                    if obj is not None and obj not in self.global_objects:
-                        entity_data.objects.append(obj)
-            entities_objects.append(entity_data.objects)
-            
-        return vehicles_objects, entities_objects
+    def load_blend_objects(self):
+        objects = []
+        exclude_Objects = self.global_exclude_objects
+        
+        for fpath in sorted(os.listdir(self.veh_path)):
+            if fpath.endswith(".blend"):
+                with bpy.data.libraries.load(self.veh_path + "/" + fpath) as (data_from, vehicle_data):
+                    for obj_from in data_from.objects:
+                        if obj_from not in exclude_Objects:
+                            vehicle_data.objects.append(obj_from)
+                for veh in vehicle_data.objects:
+                    objects.append(veh)
+                    
+        for fpath in sorted(os.listdir(self.ent_path)):
+            if fpath.endswith(".blend"):
+                with bpy.data.libraries.load(self.ent_path + "/" + fpath) as (data_from, entity_data):
+                    for obj_from in data_from.objects:
+                        if obj_from not in exclude_Objects:
+                            entity_data.objects.append(obj_from)
+                for ent in entity_data.objects:
+                    objects.append(ent)
+                    
+        for fpath in sorted(os.listdir(self.mod_ent_path)):
+            if fpath.endswith(".blend"):
+                with bpy.data.libraries.load(self.mod_ent_path + "/" + fpath) as (data_from, mod_entity_data):
+                    for obj_from in data_from.objects:
+                        if obj_from not in exclude_Objects:
+                            mod_entity_data.objects.append(obj_from)
+                for mod_ent in mod_entity_data.objects:
+                    objects.append(mod_ent)
+                    
+        for fpath in sorted(os.listdir(self.mod_veh_path)):
+            if fpath.endswith(".blend"):
+                with bpy.data.libraries.load(self.mod_veh_path + "/" + fpath) as (data_from, mod_vehicle_data):
+                    for obj_from in data_from.objects:
+                        if obj_from not in exclude_Objects:
+                            mod_vehicle_data.objects.append(obj_from)
+                for mod_veh in mod_vehicle_data.objects:
+                    objects.append(mod_veh)
+                    
+        return objects
+    
     
     def create_bezier_curve(self, points, name="Bezier_Curve"):
         curve_data = bpy.data.curves.new(name="Bezier_Curve", type='CURVE')
@@ -262,22 +312,43 @@ class Blender_Utils:
             obj.scale = scale
         return data_to.objects
     
-    def load_objects_to_blender(self, objects, orientations = None, locations=None, 
-                                scales = None, frame_number=1, camera_loc=(0,0,1.5)):
+    def setup_camera_loc(self, camera_loc):
+        self.camera.location = camera_loc
         
+    def add_texture(self,obj, color=(0, 0.1,0,0)):
+        mat_green = bpy.data.materials.new(name="Green")
+        mat_green.diffuse_color = color
+        obj.active_material = mat_green
+        return obj
+
+    def setup_camera(self):
+        # Check if camera exists, if not create a new camera
+        if not bpy.data.objects.get("Camera"):
+            bpy.ops.object.camera_add()
+        if not bpy.data.objects.get("SUN"):
+            bpy.ops.object.light_add(type='SUN', location=(0, 0, 10))
+        self.camera = bpy.data.objects.get("Camera")
+        self.camera.location = (0, 0, 1.5)
+        self.camera.rotation_euler = (1.57, 0, 0)
+    
+    def load_objects_to_blender(self, objects, orientations, locations, scales, frame_number=1, camera_loc=(0,0,1.5), ObjectState = None):
         bpy.context.scene.frame_set(frame_number)
-        self.setup_cameras()
+        self.setup_camera()
+        self.setup_camera_loc(camera_loc)
+        
         for obj_c, obj in enumerate(objects):
-            obj = obj[0]
             obj = obj.copy()
             obj.data = obj.data.copy()
             obj.rotation_euler = orientations[obj_c]
             obj.location = locations[obj_c]
             obj.scale = scales[obj_c]
-            obj.keyframe_insert(data_path="location", frame = frame_number ,index=-1)
-            obj.keyframe_insert(data_path="rotation_euler", frame = frame_number , index=-1)
-            obj.keyframe_insert(data_path="scale", frame = frame_number , index=-1)
-            bpy.context.collection.objects.link(obj)
+            obj.keyframe_insert(data_path="location", frame =frame_number, index=-1)
+            obj.keyframe_insert(data_path="rotation_euler", frame =frame_number, index=-1)
+            obj.keyframe_insert(data_path="scale", frame =frame_number, index=-1)
+            
+            bpy.context.collection.objects.link(obj)    
+        del objects, orientations, locations, scales
+            
         
     def setup_cameras(self):
         # Setup First Person Camera
@@ -285,89 +356,12 @@ class Blender_Utils:
         # Setup Third Person Camera
         self.third_camera = self.setup_camera_third_person_view()
         
-    def render_cam_frame(self, output_path, camera_name, frame_number, width =None, height=None):
-        if width is None:
-            width = self.render_width
-        if height is None:
-            height = self.render_height
-        
-        # Set context of the scene through camera 
+    def render_cam_frame(self, output_path, frame_name, frame_number, width =1920, height=1080):
+        # Add light to the scenes on top of the camera 
+        bpy.ops.object.light_add(type='SUN', location=(0,0,5))
         bpy.context.scene.camera = self.camera 
-        bpy.context.scene.render.filepath = os.path.join(output_path, camera_name, f"frame_{frame_number}.png")
+        bpy.context.scene.render.filepath = os.path.join(output_path, f"{frame_name}")
         bpy.context.scene.render.resolution_x = width
         bpy.context.scene.render.resolution_y = height
         bpy.ops.render.render(write_still=True)
-        
-        
-
-# blender_utils = Blender_Utils()
-
-# # Clear Scene 
-# blender_utils.delete_all_objects()
-
-# blender_utils.setup_camera_first_person_view()
-
-# blender_utils.create_road_lanes()
-# #vehicles = blender_utils.SpawnObject(ASSETS_PATH+"Vehicles/SedanAndHatchback.blend", ["Sedan"], (-2,3,0), (1,1,1))
-
-# load_pickle_data = open_pickle_file(DATA_PATH+"results.pkl")
-# print("=========================================")
-
-# print("Keys in the pickle file: ", load_pickle_data.keys())
-# output_data = load_pickle_data['../P3Data/test_video_frames/frame_0201.png']
-# final_lanes = output_data['final_lanes']
-# yolo3d = output_data['yolo3d']
-# depth = output_data['depth']
-# object_detections = output_data['object_detection']
-# pose_detections = output_data['pose_detection']
-
-# print("=========================================")
-# print("Length of final lanes: ", len(final_lanes))
-# print("Length of yolo3d: ", len(yolo3d))
-# print("Length of depth: ", len(depth))
-# print("Length of object detection: ", len(object_detections))
-# print("Length of pose detection: ", len(pose_detections))
-
-
-# # Get the scale factor
-# scale_fac = get_scale_factor(depth)
-
-# bbox_3d = yolo3d['Objects']
-
-# for i in range(0,len(bbox_3d)):
-#     box_3d = bbox_3d[i]['Box_3d']
-#     centroid = np.mean(box_3d, axis=0)
-#     z_val = depth[int(centroid[1]), int(centroid[0])]
-#     centroid = form2_conv_image_world(blender_utils.R, blender_utils.K, centroid, z_val)
-#     centroid = (centroid[0], centroid[2], 0)
-#     orien, rot = bbox_3d[i]['Orientation'], bbox_3d[i]['R']
-#     dimension = bbox_3d[i]['Dim']
-#     bird_view_orien = Matrix([[1, 0, 0],
-#                                 [0, 1, 0],
-#                                 [orien[0], orien[1], 0]])
-#     relative_view = bird_view_orien.transposed() @ Matrix(rot)
-#     euler_angles = relative_view.to_euler()
-#     rotation = (euler_angles[0], euler_angles[1], euler_angles[2])
-#     scale = np.array([0.01, 0.01, 0.01]) * scale_fac
-#     blender_utils.SpawnObject(ASSETS_PATH+"Vehicles/SedanAndHatchback.blend", ["Car"], centroid, rotation, scale)
-    
-# boxes_2d = object_detections['boxes']
-# classes = object_detections['classes']
-# scores = object_detections['scores']
-# classes_names = object_detections['classes_names']
-
-# for i in range(0, len(boxes_2d)):
-#     box = boxes_2d[i]
-#     class_name = classes_names[classes[i]]
-#     if class_name == "car":
-#         continue
-#     score = scores[i]
-#     x_min, y_min, x_max, y_max = box
-#     x = (x_min + x_max) / 2
-#     y = (y_min + y_max) / 2
-#     z = 0
-#     centroid = form2_conv_image_world(blender_utils.R, blender_utils.K, (x, y), z)
-#     centroid = (centroid[0], centroid[2], 0)
-#     rotation = (0, 0, 0)
-#     scale = np.array([0.01, 0.01, 0.01]) * scale_fac
-#     blender_utils.SpawnObject(ASSETS_PATH+"Vehicles/SedanAndHatchback.blend", [class_name], centroid, rotation, scale)
+        self.delete_from_scene()

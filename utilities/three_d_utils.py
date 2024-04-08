@@ -42,6 +42,23 @@ def form2_conv_image_world(R,K,pts, depth) :
 
     return xyz
 
+# def form2_conv_image_world(R,K,pts, depth) :
+#     # Get the pixel coordinates
+#     u, v = pts
+
+#     # Convert image to camera projection (x, y, 1)
+#     x_projection = np.linalg.inv(K) @ np.array([u, v, 1]).T
+
+#     # Get point in camera coordinates
+#     X_cam = depth * x_projection
+
+#     # Get point in world coordinates
+#     X_world = np.array([0,0,2.5]) +  np.array([[1,  0,0],
+#    [0, 0, -1],
+#    [0, 0, 0]])@ (X_cam)
+
+#     return X_world
+
 # Function to fit a Bezier curve to the points
 def fit_bezier_curve(points, smooth=0.5):
     # Fit a Bézier curve to the points

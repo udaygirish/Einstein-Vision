@@ -47,3 +47,18 @@ implement/integration - reusable
 
 
 ![4 Cam Pipeline](images/4_Cam_Pipeline.png)
+
+
+    Each object Structure
+    {
+    '3d_world_coords': []
+    'bbox_2d': []
+    'class_name': ""
+    'orientation': []
+    'scale': []
+    'score': 0.0
+    'state_label': ""
+    'avg_velocity': [],
+    'track_id': 0,
+    'pose_path': ""
+}

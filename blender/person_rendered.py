@@ -53,12 +53,12 @@ R = np.array([[1, 0, 0, 0],
 blender_utils = Blender_Utils()
 
 
-Mesh_path = "Pose_Detection/PyMAF/output/video_9"
+Mesh_path = "Pose_Detection/PyMAF/output/scene_10"
 pose_data_path = BASE_PATH + Mesh_path+ "/output.pkl"
 
 data = load_pose_data(pose_data_path)
 
-pose_details , pose_bbox = get_pose_details(910, data)
+pose_details , pose_bbox = get_pose_details(112, data)
 
 print(pose_bbox)
 print(pose_details)
