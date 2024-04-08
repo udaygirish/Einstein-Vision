@@ -28,7 +28,7 @@ import time
 
 #blender_utils = Blender_Utils()
 
-video_name = "video5"
+video_name = "video6"
 
 K,R = get_hardcoded_KR()
 
@@ -37,8 +37,8 @@ K,R = get_hardcoded_KR()
 
 BASE_PATH = "/home/udaygirish/Projects/WPI/computer_vision/project3/"
 
-all_objects_data = BASE_PATH + "/P3Data/results_video5_old.pkl"
-person_obj_data = BASE_PATH + "/P3Data/Pose_Outputs/scene_5/output.pkl"
+all_objects_data = BASE_PATH + "/P3Data/results_video6_old.pkl"
+person_obj_data = BASE_PATH + "/P3Data/Pose_Outputs/scene_6/output.pkl"
 
 vehicle_types = ['car', "suv", "truck", "pickup_truck", "sedan", "motorcycle", "bicycle"]
 traffic_light_types = ["traffic_light", "green traffic light", "red traffic light",
@@ -73,8 +73,6 @@ def main():
     lane_backup_list = None
     total_lane_classes_blist = None
     for i in range(len(all_obj_data_frames)):
-        if i>5:
-            continue
         # Delete all blender objects
         bpy.ops.object.select_all(action='DESELECT')
         bpy.ops.object.select_by_type(type='MESH')
@@ -158,7 +156,7 @@ def main():
                 #print("State Label: ", state_label)
                 #print("Moving Label: ", moving_label)
                 if moving_label == "Stationary" and state_label  != "car_BrakeOn":
-                    blend_obj_gen.add_texture(temp_obj, color=(0.04,0.04, 0.04, 1))
+                    blend_obj_gen.add_texture(temp_obj, color=(0.1,0.1,0.1,0.01))
                 if class_name == "trash can" or class_name == "dust bin":
                     blend_obj_gen.add_texture(temp_obj)
                 Objects.append(temp_obj)
@@ -169,25 +167,29 @@ def main():
         
         
         for k in range(len(blendable_persons)):
-            print("Frame Number: ", i)
-            person = blendable_persons[k]
-            coords_3d = person["3d_world_coords"]
-            bbox_2d = person["bbox_2d"]
-            class_name = person["class_name"]
-            orientation = person["orientation"]
-            scale = person["scale"]
-            score = person["score"]
-            state_label = person["state_label"]
-            # moving_label = person["moving_label"]
-            # avg_velocity = person["avg_velocity"]
-            base_pose_path = BASE_PATH + "/P3Data/Pose_Outputs/scene_5/meshes/"
-            pose_path = person["pose_path"]
-            
-            bpy.ops.wm.obj_import(filepath=base_pose_path + pose_path)
-            imported_obj = bpy.context.selected_objects[0]
-            imported_obj.location = (coords_3d[0], coords_3d[1] , coords_3d[2]+0.5)
-            imported_obj.scale = (1, 1, 1)
-            imported_obj.rotation_euler = (90, 0, -170)
+            try:
+                print("Frame Number: ", i)
+                person = blendable_persons[k]
+                coords_3d = person["3d_world_coords"]
+                bbox_2d = person["bbox_2d"]
+                class_name = person["class_name"]
+                orientation = person["orientation"]
+                scale = person["scale"]
+                score = person["score"]
+                state_label = person["state_label"]
+                # moving_label = person["moving_label"]
+                # avg_velocity = person["avg_velocity"]
+                base_pose_path = BASE_PATH + "/P3Data/Pose_Outputs/scene_5/meshes/"
+                pose_path = person["pose_path"]
+                
+                bpy.ops.wm.obj_import(filepath=base_pose_path + pose_path)
+                imported_obj = bpy.context.selected_objects[0]
+                imported_obj.location = (coords_3d[0], coords_3d[1] , coords_3d[2]+0.5)
+                imported_obj.scale = (1, 1, 1)
+                imported_obj.rotation_euler = (90, 0, -170)
+            except Exception as e:
+                print("Error: ", e)
+                pass
             
         # Load the Camera and save the render to save into a folder of images
         blend_obj_gen.render_cam_frame(f"Outputs/BLENDER/{video_name}", frame_name= "frame_{}.png".format(i), frame_number= 1)
@@ -208,7 +210,7 @@ def make_video_from_images(image_folder, video_name):
     frame = cv2.imread(os.path.join(image_folder, images[0]))
     height, width, layers = frame.shape
     
-    video = cv2.VideoWriter(video_name, 0, 1, (width, height))
+    video = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*'mp4v'), 5, (width, height))
     
     for image in images:
         video.write(cv2.imread(os.path.join(image_folder, image)))

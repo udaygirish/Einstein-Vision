@@ -256,6 +256,7 @@ class Blender_Utils:
         bpy.ops.mesh.primitive_plane_add(size=100, enter_editmode=False, align='WORLD', location=(0, 0, 0))
         road_surface = bpy.context.object
         road_surface.name = "Road_Surface"
+        road_surface.scale = (.15, 2, .15)
         
 #         Assign material to road surface
         road_material = bpy.data.materials.new(name="Road_Material")
@@ -316,7 +317,7 @@ class Blender_Utils:
         self.camera.location = camera_loc
         
     def add_texture(self,obj, color=(0, 0.1,0,0)):
-        mat_green = bpy.data.materials.new(name="Green")
+        mat_green = bpy.data.materials.new(name="Black")
         mat_green.diffuse_color = color
         obj.active_material = mat_green
         return obj
