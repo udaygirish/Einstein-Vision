@@ -23,7 +23,8 @@ from utilities.blender_utils import *
 from utilities.random_utils import *
 from PIL import Image
 from lib.load_3d_poses import load_pose_data, get_pose_details
-from tqdm import tqdm
+from tqdm import tqdm 
+import time 
 
 #blender_utils = Blender_Utils()
 
@@ -52,8 +53,8 @@ def main():
     
     all_obj_data_frames = list(all_obj_data.keys())
     #print("All frames inside", all_obj_data_frames)
-    print("Keys inside the object data: ", all_obj_data[all_obj_data_frames[0]].keys()) 
-    print("Keys inside the sample object data: ", all_obj_data[all_obj_data_frames[0]]["objects"][0].keys())
+    #print("Keys inside the object data: ", all_obj_data[all_obj_data_frames[0]].keys()) 
+    #print("Keys inside the sample object data: ", all_obj_data[all_obj_data_frames[0]]["objects"][0].keys())
     print("====================================="*3)
     BlenderUtils = Blender_Utils()
     CAMERA_LOC = (0,0,1.5)
@@ -68,13 +69,17 @@ def main():
     print("First frame: ", all_obj_data_frames[0])
     print("Last frame: ", all_obj_data_frames[-1])
     ob_f_no = 12
-    print("Current Frame: ", all_obj_data_frames[ob_f_no])
-    
+    #print("Current Frame: ", all_obj_data_frames[ob_f_no])
+    lane_backup_list = None
+    total_lane_classes_blist = None
     for i in range(len(all_obj_data_frames)):
+        if i>5:
+            continue
         # Delete all blender objects
         bpy.ops.object.select_all(action='DESELECT')
         bpy.ops.object.select_by_type(type='MESH')
         bpy.ops.object.delete()
+        blend_obj_gen.delete_all_objects()
         
         # Delete sun light and camera
         bpy.ops.object.select_by_type(type='LIGHT')
@@ -92,13 +97,23 @@ def main():
 
         # Create lanes 
         lanes = all_obj_data[all_obj_data_frames[i]]["lane_3d_points"]
-        total_lane_classes = ["solid-line" for i in range(len(lanes))]
+        total_lane_classes = all_obj_data[all_obj_data_frames[i]]["lane_classes"]
+        if len(lanes) == 0:
+            if lane_backup_list is not None:
+                lanes = lane_backup_list
+                total_lane_classes = total_lane_classes_blist
+            else:
+                lanes =  []
+                total_lane_classes = []
+        if len(lanes) > 0:
+            lane_backup_list = lanes
+            total_lane_classes_blist = total_lane_classes
         for l in range(len(lanes)):
             curve_obj = blend_obj_gen.create_bezier_curve_from_points(lanes[l])
             if total_lane_classes[l] == "solid-line":
                 blend_obj_gen.create_lane_markings_by_curve_length(curve_obj, lane_width=1, lane_length=10, gap_length=0, num_lanes=15)
             else:
-                blend_obj_gen.create_lane_markings_by_curve_length(curve_obj, lane_width=1, lane_length=10, gap_length=1, num_lanes=8)
+                blend_obj_gen.create_lane_markings_by_curve_length(curve_obj, lane_width=1, lane_length=3, gap_length=1, num_lanes=8)
         
         blendable_objects = all_obj_data[all_obj_data_frames[i]]["objects"]
         blendable_persons = all_obj_data[all_obj_data_frames[i]]["persons"]
@@ -130,13 +145,21 @@ def main():
                 ind = next(i for i,s in enumerate(blendable_obj_names) if s.split('.')[0].startswith(asset_name.split('.')[0]))
                 temp_obj = blend_obj_gen.objects[ind]
                 Orientations.append(orientation)
+                if state_label == "car_BrakeOn":
+                    mod_class_name = class_name + "Red"
+                    asset_name = YOLOCLASSES_TO_BLENDER[mod_class_name]
+                    #print("Asset Name",asset_name)
+                    #print("Blendable Object Names: ", blendable_obj_names)
+                    ind = next(i for i,s in enumerate(blendable_obj_names) if s.split('.')[0].startswith(asset_name.split('.')[0]))
                 if class_name in traffic_light_types:
                     Locations.append([coords_3d[0],  coords_3d[1], abs(coords_3d[2])+1.5])
                 else:
                     Locations.append(coords_3d)
-                print("State Label: ", state_label)
-                print("Moving Label: ", moving_label)
-                if moving_label == "Stationary":
+                #print("State Label: ", state_label)
+                #print("Moving Label: ", moving_label)
+                if moving_label == "Stationary" and state_label  != "car_BrakeOn":
+                    blend_obj_gen.add_texture(temp_obj, color=(0.04,0.04, 0.04, 1))
+                if class_name == "trash can" or class_name == "dust bin":
                     blend_obj_gen.add_texture(temp_obj)
                 Objects.append(temp_obj)
                 Scales.append(scale)
@@ -145,8 +168,9 @@ def main():
         blend_obj_gen.load_objects_to_blender(Objects, Orientations, Locations, Scales, ObjectState= ObjectStates)
         
         
-        for i in range(len(blendable_persons)):
-            person = blendable_persons[i]
+        for k in range(len(blendable_persons)):
+            print("Frame Number: ", i)
+            person = blendable_persons[k]
             coords_3d = person["3d_world_coords"]
             bbox_2d = person["bbox_2d"]
             class_name = person["class_name"]
@@ -161,7 +185,7 @@ def main():
             
             bpy.ops.wm.obj_import(filepath=base_pose_path + pose_path)
             imported_obj = bpy.context.selected_objects[0]
-            imported_obj.location = coords_3d
+            imported_obj.location = (coords_3d[0], coords_3d[1] , coords_3d[2]+0.5)
             imported_obj.scale = (1, 1, 1)
             imported_obj.rotation_euler = (90, 0, -170)
             
@@ -180,6 +204,7 @@ def main():
 def make_video_from_images(image_folder, video_name):
     
     images = [img for img in os.listdir(image_folder) if img.endswith(".png")]
+    print("Length of Images: ", len(images))
     frame = cv2.imread(os.path.join(image_folder, images[0]))
     height, width, layers = frame.shape
     
@@ -200,6 +225,10 @@ def make_video_from_images(image_folder, video_name):
     
     
 if __name__ == "__main__":
+    t1 = time.time()
     main()
+    t2 = time.time()
+    
+    print("Time Taken for Processing and Rendering the frames: ", t2-t1)
 
 
